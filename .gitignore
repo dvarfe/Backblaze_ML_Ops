@@ -5,3 +5,4 @@ Prepare Data.ipynb
 Pipfile.lock
 Data_collected
 Sources
+__pycache__
