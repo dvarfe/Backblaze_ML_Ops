@@ -2,3 +2,6 @@ Data/
 Data_Monthly
 Data_Spark
 Prepare Data.ipynb
+Pipfile.lock
+Data_collected
+Sources
