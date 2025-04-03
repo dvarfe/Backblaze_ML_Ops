@@ -18,9 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="rel_analyzer.controller package" href="rel_analyzer.controller.html" />
-    <link rel="prev" title="rel_analyzer package" href="rel_analyzer.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -43,24 +41,8 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">rel_analyzer</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="rel_analyzer.html">rel_analyzer package</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="rel_analyzer.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l4 current"><a class="current reference internal" href="#">rel_analyzer.classes package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rel_analyzer.controller.html">rel_analyzer.controller package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rel_analyzer.tests.html">rel_analyzer.tests package</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="rel_analyzer.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="rel_analyzer.html#module-rel_analyzer.constants">rel_analyzer.constants module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="rel_analyzer.html#rel-analyzer-rel-analyzer-module">rel_analyzer.rel_analyzer module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="rel_analyzer.html#rel-analyzer-test-module">rel_analyzer.test module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="rel_analyzer.html#module-rel_analyzer">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">disk_analyzer</a></li>
 </ul>
 
         </div>
@@ -77,8 +59,6 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="modules.html">rel_analyzer</a></li>
-          <li class="breadcrumb-item"><a href="rel_analyzer.html">rel_analyzer package</a></li>
       <li class="breadcrumb-item active">rel_analyzer.classes package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/rel_analyzer.classes.rst.txt" rel="nofollow"> View page source</a>
@@ -91,69 +71,15 @@
              
   <section id="rel-analyzer-classes-package">
 <h1>rel_analyzer.classes package<a class="headerlink" href="#rel-analyzer-classes-package" title="Link to this heading"></a></h1>
-<section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
-</section>
-<section id="module-rel_analyzer.classes.data_collector">
-<span id="rel-analyzer-classes-data-collector-module"></span><h2>rel_analyzer.classes.data_collector module<a class="headerlink" href="#module-rel_analyzer.classes.data_collector" title="Link to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="rel_analyzer.classes.data_collector.DataCollector">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rel_analyzer.classes.data_collector.</span></span><span class="sig-name descname"><span class="pre">DataCollector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./Data_collected'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfgpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./analyzer_cfg.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rel_analyzer/classes/data_collector.html#DataCollector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rel_analyzer.classes.data_collector.DataCollector" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Class responsible for collecting the data.</p>
-<p>Accepts paths to various data sources, splits the data into batches, and copies it into storage.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>paths</strong> (<em>list</em>) – List of paths to various data sources.</p></li>
-<li><p><strong>storage_path</strong> (<em>str</em>) – Path to storage of batches.</p></li>
-<li><p><strong>batchsize</strong> (<em>int</em>) – Number of samples to be stored in one batch.</p></li>
-<li><p><strong>cfgpath</strong> (<em>str</em>) – <p>Path to configuration file. If not provided, checks in the current folder.
-Configuration file has higher priority than parameters from the constructor.
-Configuration file is a JSON file with the following structure:
-{</p>
-<blockquote>
-<div><p>”batchsize”: number of samples in one batch,
-“paths”: list of paths to various data sources</p>
-</div></blockquote>
-<p>}</p>
-</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="rel_analyzer.classes.data_collector.DataCollector.batch_resize">
-<span class="sig-name descname"><span class="pre">batch_resize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rel_analyzer/classes/data_collector.html#DataCollector.batch_resize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rel_analyzer.classes.data_collector.DataCollector.batch_resize" title="Link to this definition"></a></dt>
-<dd><p>Rearrange the data in existing storage to match new batch size</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="rel_analyzer.classes.data_collector.DataCollector.collect_data">
-<span class="sig-name descname"><span class="pre">collect_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rel_analyzer/classes/data_collector.html#DataCollector.collect_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rel_analyzer.classes.data_collector.DataCollector.collect_data" title="Link to this definition"></a></dt>
-<dd><p>Collects the data from various sources and stores it in batches</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="rel_analyzer.classes.data_collector.DataCollector.list_csv">
-<span class="sig-name descname"><span class="pre">list_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rel_analyzer/classes/data_collector.html#DataCollector.list_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rel_analyzer.classes.data_collector.DataCollector.list_csv" title="Link to this definition"></a></dt>
-<dd><p>Returns a list of csv files in the paths</p>
-</dd></dl>
-
-</dd></dl>
-
-</section>
-<section id="module-rel_analyzer.classes">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-rel_analyzer.classes" title="Link to this heading"></a></h2>
+<section id="module-contents">
+<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
 </section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="rel_analyzer.html" class="btn btn-neutral float-left" title="rel_analyzer package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="rel_analyzer.controller.html" class="btn btn-neutral float-right" title="rel_analyzer.controller package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

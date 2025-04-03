@@ -1,7 +1,7 @@
-rel_analyzer
-============
+disk_analyzer
+=============
 
 .. toctree::
    :maxdepth: 4
 
-   rel_analyzer
+   disk_analyzer
