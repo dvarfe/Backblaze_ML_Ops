@@ -6,3 +6,4 @@ Pipfile.lock
 Data_collected
 Sources
 __pycache__
+.vscode
