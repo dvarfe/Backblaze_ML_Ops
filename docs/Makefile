@@ -7,7 +7,7 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
-APIDOCDIR     = ../rel_analyzer  
+APIDOCDIR     = ../disk_analyzer
 APIDOCOUT     = .
 
 # Put it first so that "make" without argument is like "make help".
@@ -20,6 +20,6 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@echo "Generating API documentation..."
-	sphinx-apidoc -o $(APIDOCOUT) $(APIDOCDIR) 
+	sphinx-apidoc -o $(APIDOCOUT) $(APIDOCDIR) --force 
 	@echo "Building HTML..."
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
