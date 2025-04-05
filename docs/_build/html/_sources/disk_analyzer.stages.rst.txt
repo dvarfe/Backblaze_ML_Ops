@@ -12,6 +12,14 @@ disk\_analyzer.stages.data\_collector module
    :show-inheritance:
    :undoc-members:
 
+disk\_analyzer.stages.data\_stats module
+----------------------------------------
+
+.. automodule:: disk_analyzer.stages.data_stats
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

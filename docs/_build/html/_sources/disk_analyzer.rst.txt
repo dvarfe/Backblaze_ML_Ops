@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   disk_analyzer.controller
    disk_analyzer.stages
 
 Module contents
