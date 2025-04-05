@@ -3,8 +3,8 @@ import os
 import shlex
 import cmd
 import argparse
-from src.controller.controller import Controller
-from constants import BATCHSIZE, COLLECTOR_CFG, STORAGE_PATH
+from disk_analyzer.controller import Controller
+from disk_analyzer.utils.constants import BATCHSIZE, COLLECTOR_CFG, STORAGE_PATH
 
 data_collect_parser = argparse.ArgumentParser()
 data_collect_parser.add_argument(
@@ -75,6 +75,28 @@ class RelAnalyzer(cmd.Cmd):
                                      batchsize=args_parsed.batchsize,
                                      cfgpath=args_parsed.cfgpath)
         print('Data succesfully collected!')
+
+    def do_rebatch(self, args):
+        """
+        Change batchsize
+
+        Command-line arguments:
+        args: batchsize (int)
+        """
+        try:
+            new_batchsize = int(args.split()[0])
+        except:
+            print('Incorrect value for batchsize!')
+        if new_batchsize <= 0:
+            print('Incorrect value for batchsize!')
+        else:
+            self.controller.batchsize = new_batchsize
+            self.controller.rebatch(new_batchsize)
+            print(
+                f'Batchsize succesfully changed to {self.controller.batchsize}')
+
+    def do_exit(self, args):
+        return True
 
 
 if __name__ == '__main__':
