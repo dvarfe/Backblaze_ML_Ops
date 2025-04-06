@@ -63,9 +63,13 @@ class DataCollector:
 
         # additional file to save information about batches
         df_contents = pd.DataFrame(
-            columns=['batchnum', 'min_data', 'max_data'])
+            columns=['batchnum', 'min_date', 'max_date'])
 
         old_files = self.__list_csv([self.__storage_path])
+        old_files = [file for file in old_files if os.path.basename(
+            file) != 'contents.csv']
+        old_files.sort()
+
         df_size = 0
         df_list = []
         batchnum = 0
@@ -73,6 +77,7 @@ class DataCollector:
         for file in old_files:
 
             df = pd.read_csv(file)
+            df['date'] = df['date'].astype('datetime64[ns]')
             df_list.append(df)
             os.remove(os.path.join(
                 self.__storage_path, os.path.basename(file)))
@@ -80,6 +85,8 @@ class DataCollector:
 
             if df_size > self.__batchsize:
                 df_concat = pd.concat(df_list, axis=0, ignore_index=True)
+                df_concat.sort_values(by='date', inplace=True)
+
                 for i in range(df_concat.shape[0] // self.__batchsize):
                     new_batch = df_concat.iloc[i *
                                                self.__batchsize: (i + 1) * self.__batchsize, :]
@@ -102,6 +109,8 @@ class DataCollector:
                                           f'batch_{batchnum}.csv'), index=False)
             df_contents.loc[batchnum] = [
                 batchnum, new_batch['date'].min(), new_batch['date'].max()]
+        df_contents.to_csv(os.path.join(
+            self.__storage_path, 'contents.csv'), index=False)
 
     def collect_data(self):
         '''
@@ -113,7 +122,7 @@ class DataCollector:
             os.mkdir(self.__storage_path)
         for file in files:
             df = pd.read_csv(file)
-            df['date'] = df['date'].astype('datetime64[ns]')
+            df['date'] = pd.to_datetime(df['date'])
             df['season'] = df['date'].dt.month_name()
             df.to_csv(os.path.join(self.__storage_path,
                                    os.path.basename(file)), index=False)

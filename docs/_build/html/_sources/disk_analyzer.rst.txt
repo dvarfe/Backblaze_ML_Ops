@@ -9,6 +9,7 @@ Subpackages
 
    disk_analyzer.controller
    disk_analyzer.stages
+   disk_analyzer.view
 
 Module contents
 ---------------

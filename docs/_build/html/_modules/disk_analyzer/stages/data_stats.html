@@ -1,0 +1,403 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>disk_analyzer.stages.data_stats &mdash; Backblaze MLOps Pipeline 0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=837179f8"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Backblaze MLOps Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">disk_analyzer</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Backblaze MLOps Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">disk_analyzer.stages.data_stats</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for disk_analyzer.stages.data_stats</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATIC_STATS</span><span class="p">,</span> <span class="n">STATIC_STATS_DESCRIPTION</span><span class="p">,</span> <span class="n">DYNAMIC_STATS</span><span class="p">,</span> <span class="n">DYNAMIC_STATS_DESCRIPTION</span>
+
+
+<div class="viewcode-block" id="DataStats">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataStats</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">static_stats</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">STATIC_STATS</span><span class="p">,</span> <span class="n">dynamic_stats</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">DYNAMIC_STATS</span><span class="p">,</span>
+                 <span class="n">dynamic_stats_freq</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;daily&#39;</span><span class="p">,</span> <span class="n">fig_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;data_stats_figures&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Class to calculate data statistics</span>
+<span class="sd">        Statistics can be static and dynamic.</span>
+<span class="sd">        Static statistics are:</span>
+<span class="sd">            data_size - number of observations in the data.</span>
+<span class="sd">            min_date - date of the first observation.</span>
+<span class="sd">            max_date - date of the last observation.</span>
+<span class="sd">            mean_lifetime - mean lifetime of disks.</span>
+<span class="sd">            max_lifetime - maximum lifetime of disks.</span>
+<span class="sd">            na_rate - rate of missing data in each column.</span>
+<span class="sd">            truncated_rate - rate of truncated disks.</span>
+<span class="sd">            survival_rate - rate of survived disks.</span>
+<span class="sd">            failure_rate - rate of failed disks.</span>
+<span class="sd">            double_failures - rate of disks that have failed more than once.</span>
+<span class="sd">            mean_time_between_observ - mean time between observations of a disk.</span>
+<span class="sd">            mean_observ_per_day - mean number of observations per day.</span>
+<span class="sd">        Dynamic statistics are calucated per day/month. They are represented as figures saved by specified path:</span>
+<span class="sd">            mean_lifetime - mean lifetime of disks of disks alive at the day/month.</span>
+<span class="sd">            max_lifetime - maximum lifetime of disks alive at the day/month.</span>
+<span class="sd">            na_rate - rate of nans.</span>
+<span class="sd">            survival_rate - rate of disks that have survived at the day/month.</span>
+<span class="sd">            failure_rate - rate of disks that have failed at the day/month.</span>
+<span class="sd">            mean_observ_per_day - mean number of observations.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            static_stats (List[str], optional): List of static statistics to calculate. Defaults to STATIC_STATS.</span>
+<span class="sd">            dynamic_stats (List[str], optional): List of dynamic statistics to calculate. Defaults to DYNAMIC_STATS.</span>
+<span class="sd">            dynamic_stats_freq (str): Can be &#39;daily&#39; or &#39;monthly&#39;. Determines dynamic_stats aggregation frequency.</span>
+<span class="sd">                                    Defaults to &#39;daily&#39;.</span>
+<span class="sd">            fig_path (str) : Path to the folder where to save the figures. Defaults to &#39;data_stats_figures&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__static_stats</span> <span class="o">=</span> <span class="n">static_stats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_stats</span> <span class="o">=</span> <span class="n">dynamic_stats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_stats_freq</span> <span class="o">=</span> <span class="n">dynamic_stats_freq</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig_path</span> <span class="o">=</span> <span class="n">fig_path</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__static_stats_funcs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;data_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_data_size</span><span class="p">,</span>
+            <span class="s1">&#39;min_date&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_min_date</span><span class="p">,</span>
+            <span class="s1">&#39;max_date&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_max_date</span><span class="p">,</span>
+            <span class="s1">&#39;mean_lifetime&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_mean_lifetime</span><span class="p">,</span>
+            <span class="s1">&#39;max_lifetime&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_max_lifetime</span><span class="p">,</span>
+            <span class="s1">&#39;na_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_na_rate</span><span class="p">,</span>
+            <span class="s1">&#39;truncated_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__calculate_truncated_rate</span><span class="p">,</span>
+            <span class="s1">&#39;survival_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_survival_rate</span><span class="p">,</span>
+            <span class="s1">&#39;failure_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_failure_rate</span><span class="p">,</span>
+            <span class="s1">&#39;double_failures&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_double_failures</span><span class="p">,</span>
+            <span class="s1">&#39;mean_time_between_observ&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_mean_time_between_observ</span><span class="p">,</span>
+            <span class="s1">&#39;mean_observ_per_day&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_mean_observ_per_day</span>
+        <span class="p">}</span>
+
+        <span class="c1"># self.__dynamic_stats_funcs = {</span>
+        <span class="c1">#     &#39;mean_lifetime&#39;: self.calculate_dynamic_mean_lifetime,</span>
+        <span class="c1">#     &#39;max_lifetime&#39;: self.calculate_dynamic_max_lifetime,</span>
+        <span class="c1">#     &#39;na_rate&#39;: self.calculate_dynamic_na_rate,</span>
+        <span class="c1">#     &#39;survival_rate&#39;: self.calculate_dynamic_survival_rate,</span>
+        <span class="c1">#     &#39;failure_rate&#39;: self.calculate_dynamic_failure_rate,</span>
+        <span class="c1">#     &#39;mean_observ_per_day&#39;: self.calculate_dynamic_mean_observ_per_day</span>
+        <span class="c1"># }</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__delete_truncated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method to delete truncated disks from the dataframe.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (pd.DataFrame): Dataframe to delete from.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">last_observation</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">trunc_id</span> <span class="o">=</span> <span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">last_observation</span><span class="p">)</span> <span class="o">&amp;</span>
+                      <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)][</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">trunc_id</span><span class="p">)],</span> <span class="n">trunc_id</span>
+
+<div class="viewcode-block" id="DataStats.calculate_stats">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method to calculate statistics.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (pd.DataFrame): Data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Static statistics</span>
+<span class="sd">            str: Path to the folder with figures of dynamic statistics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__data</span> <span class="o">=</span> <span class="n">df</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__truncated_disks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__delete_truncated</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">)</span>
+        <span class="n">static_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_static_stats</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="c1"># self.calculate_dynamic_stats()</span>
+        <span class="k">return</span> <span class="n">static_stats</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig_path</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_static_stats">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_static_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_static_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method to calculate static statistics.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (pd.DataFrame): Data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">static_stats</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">stat_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__static_stats</span><span class="p">:</span>
+            <span class="n">static_stats</span><span class="p">[</span><span class="n">stat_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__static_stats_funcs</span><span class="p">[</span><span class="n">stat_name</span><span class="p">](</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">static_stats</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_data_size">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_data_size">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_data_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the dimensions of the dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple containing (number_of_rows, number_of_columns)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_min_date">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_min_date">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_min_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds the earliest date in the dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Minimum datetime value found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_max_date">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_max_date">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_max_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds the latest date in the dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Maximum datetime value found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_durations">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_durations">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_durations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates lifetimes of each disk that have failed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (pd.DataFrame): Data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pd.Series: Lifitimes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">disks_died</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">][</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="n">durations</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">disks_died</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+        <span class="p">)</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">disks_died</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span>
+        <span class="k">return</span> <span class="n">durations</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_mean_lifetime">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_mean_lifetime">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_mean_lifetime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates average lifetime.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input datafram</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Mean lifetime value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">durations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_durations</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">durations</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_max_lifetime">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_max_lifetime">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_max_lifetime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds maximum lifetime value.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Maximum lifetime value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">durations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_durations</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">durations</span><span class="o">.</span><span class="n">max</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_na_rate">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_na_rate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_na_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates percentage of missing values.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Percentage of NA values (0-100)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__calculate_truncated_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates percentage of truncated disks.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Percentage of truncated observations (0-100)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__truncated_disks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span>
+
+<div class="viewcode-block" id="DataStats.calculate_survival_rate">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_survival_rate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_survival_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates survival rate. Number of disks failed divided by total number of disks.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Survival rate (0-100)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df_grouped</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">disks_alive</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df_grouped</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">df_grouped</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">disks_alive</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_failure_rate">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_failure_rate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_failure_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates failure rate.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+<span class="sd">            event_col: Name of event indicator column</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Failure rate (0-100)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">100</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_survival_rate</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_double_failures">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_double_failures">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_double_failures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Counts double failure events per subject.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Number of disks with multiple failure events</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">gt</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_mean_time_between_observ">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_mean_time_between_observ">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_mean_time_between_observ</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates average time between observations.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Mean time between observations in days</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="DataStats.calculate_mean_observ_per_day">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_mean_observ_per_day">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_mean_observ_per_day</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates average observations per day.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input dataframe</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Mean number of observations per day</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, dvarfe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

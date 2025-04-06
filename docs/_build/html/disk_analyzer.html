@@ -49,6 +49,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html">disk_analyzer.controller package</a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html">disk_analyzer.stages package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.view.html">disk_analyzer.view package</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-disk_analyzer">Module contents</a></li>
@@ -93,6 +94,8 @@
 <li class="toctree-l2"><a class="reference internal" href="disk_analyzer.controller.html#module-disk_analyzer.controller">Module contents</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.Controller"><code class="docutils literal notranslate"><span class="pre">Controller</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.Controller.collect_data"><code class="docutils literal notranslate"><span class="pre">Controller.collect_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.Controller.get_data_statistics"><code class="docutils literal notranslate"><span class="pre">Controller.get_data_statistics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.Controller.open_data"><code class="docutils literal notranslate"><span class="pre">Controller.open_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.Controller.rebatch"><code class="docutils literal notranslate"><span class="pre">Controller.rebatch()</span></code></a></li>
 </ul>
 </li>
@@ -110,8 +113,37 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.stages.html#disk-analyzer-stages-data-stats-module">disk_analyzer.stages.data_stats module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.stages.html#module-disk_analyzer.stages.data_stats">disk_analyzer.stages.data_stats module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats"><code class="docutils literal notranslate"><span class="pre">DataStats</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_data_size"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_data_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_double_failures"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_double_failures()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_durations"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_durations()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_failure_rate"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_failure_rate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_max_date"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_max_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_max_lifetime"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_max_lifetime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_mean_lifetime"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_mean_lifetime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_mean_observ_per_day"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_mean_observ_per_day()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_mean_time_between_observ"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_mean_time_between_observ()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_min_date"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_min_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_na_rate"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_na_rate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_static_stats"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_static_stats()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_stats"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_stats()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats.calculate_survival_rate"><code class="docutils literal notranslate"><span class="pre">DataStats.calculate_survival_rate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="disk_analyzer.stages.html#module-disk_analyzer.stages">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="disk_analyzer.view.html">disk_analyzer.view package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.view.html#module-disk_analyzer.view">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.Viewer"><code class="docutils literal notranslate"><span class="pre">Viewer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.Viewer.show_stats"><code class="docutils literal notranslate"><span class="pre">Viewer.show_stats()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
