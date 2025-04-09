@@ -69,11 +69,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for disk_analyzer.controller</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.stages.data_collector</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataCollector</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.stages.data_stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataStats</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.stages.model_pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelPipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATIC_STATS</span><span class="p">,</span> <span class="n">STORAGE_PATH</span>
 
 
 <div class="viewcode-block" id="Controller">
@@ -84,7 +87,51 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;date&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="Controller.set_mode">
+<a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.set_mode">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span> <span class="ow">or</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;batch&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="n">mode</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Mode succesfully changed to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Incorrect value for mode!&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Controller.set_borders">
+<a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.set_borders">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_borders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">start_idx</span> <span class="o">==</span> <span class="s1">&#39;-1&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">start_idx</span><span class="p">),</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">end_idx</span> <span class="o">==</span> <span class="s1">&#39;-1&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">end_idx</span><span class="p">),</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Incorrect value for borders!&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;batch&#39;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">start_idx</span> <span class="o">==</span> <span class="s1">&#39;-1&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start_idx</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">end_idx</span> <span class="o">==</span> <span class="s1">&#39;-1&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Incorrect value for borders!&#39;</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Controller.collect_data">
 <a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.collect_data">[docs]</a>
@@ -107,17 +154,18 @@
 
 <div class="viewcode-block" id="Controller.get_data_statistics">
 <a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.get_data_statistics">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_data_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="n">storage_path</span><span class="p">,</span> <span class="n">static_stats</span><span class="p">,</span> <span class="n">dynamic_stats</span><span class="p">,</span> <span class="n">dynamic_freq</span><span class="p">,</span> <span class="n">figpath</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">,</span> <span class="n">end_idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_data_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="n">storage_path</span><span class="p">,</span> <span class="n">static_stats</span><span class="p">,</span> <span class="n">dynamic_stats</span><span class="p">,</span> <span class="n">dynamic_freq</span><span class="p">,</span> <span class="n">figpath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
         <span class="n">data_stats</span> <span class="o">=</span> <span class="n">DataStats</span><span class="p">(</span>
             <span class="n">static_stats</span><span class="p">,</span> <span class="n">dynamic_stats</span><span class="p">,</span> <span class="n">dynamic_freq</span><span class="p">,</span> <span class="n">figpath</span><span class="p">)</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_data</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">,</span> <span class="n">end_idx</span><span class="p">)</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_data</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_data</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
         <span class="n">stats</span> <span class="o">=</span> <span class="n">data_stats</span><span class="o">.</span><span class="n">calculate_stats</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">stats</span></div>
 
 
-<div class="viewcode-block" id="Controller.open_data">
-<a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.open_data">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">open_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<div class="viewcode-block" id="Controller.select_data">
+<a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.select_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">],</span> <span class="n">end_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Open the data stored in the storage path, filter it based on the start and end index and return the dataframe.</span>
 
 <span class="sd">        Args:</span>
@@ -129,9 +177,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            pd.DataFrame: Dataframe containing the data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">contents</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">storage_path</span><span class="p">,</span> <span class="s1">&#39;contents.csv&#39;</span><span class="p">))</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="s1">&#39;contents.csv&#39;</span><span class="p">))</span>
         <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;min_date&#39;</span><span class="p">],</span> <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;max_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span>
             <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;min_date&#39;</span><span class="p">]),</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">contents</span><span class="p">[</span><span class="s1">&#39;max_date&#39;</span><span class="p">])</span>
 
@@ -143,7 +189,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span> <span class="o">=</span> <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;batchnum&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
             <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">batchnum</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">batchnum</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">[(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">&lt;=</span> <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;batchnum&#39;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">contents</span><span class="p">[</span><span class="s1">&#39;batchnum&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span><span class="p">)][</span><span class="s1">&#39;batchnum&#39;</span><span class="p">]]</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">])</span>
+
         <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">start_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span> <span class="o">=</span> <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;min_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
@@ -157,13 +203,43 @@
                 <span class="n">contents</span><span class="p">[</span><span class="s1">&#39;max_date&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span><span class="p">)][</span><span class="s1">&#39;batchnum&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;batch_</span><span class="si">{</span><span class="n">batchnum</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">batchnum</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
                 <span class="n">first_batch</span><span class="p">,</span> <span class="n">last_batch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
-            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">])</span>
-            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])</span>
-            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span><span class="p">)</span>
-                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span><span class="p">)]</span>
-            <span class="k">return</span> <span class="n">df</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Mode must be either batch or date&#39;</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Mode must be either batch or date&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">paths</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span></div>
+
+
+        <span class="c1"># if mode == &#39;batch&#39;:</span>
+        <span class="c1">#     df = pd.concat([pd.read_csv(path) for path in paths])</span>
+        <span class="c1">#     df[&#39;date&#39;] = pd.to_datetime(df[&#39;date&#39;])</span>
+        <span class="c1"># elif mode == &#39;date&#39;:</span>
+        <span class="c1">#     df = pd.concat([pd.read_csv(path) for path in paths])</span>
+        <span class="c1">#     df[&#39;date&#39;] = pd.to_datetime(df[&#39;date&#39;])</span>
+        <span class="c1">#     df = df[(df[&#39;date&#39;] &gt;= self.start_idx) &amp; (df[&#39;date&#39;] &lt;= self.end_idx)]</span>
+        <span class="c1"># self.paths = paths</span>
+        <span class="c1"># return df</span>
+
+<div class="viewcode-block" id="Controller.preprocess_data">
+<a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.preprocess_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">preprocess_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">STORAGE_PATH</span><span class="p">,</span> <span class="n">model_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;train&#39;</span><span class="p">):</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_data</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_idx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">ModelPipeline</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">data_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">model_mode</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Controller.open_data">
+<a class="viewcode-back" href="../../disk_analyzer.controller.html#disk_analyzer.controller.Controller.open_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">open_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Open data from the given paths.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            paths (List[str]): Paths.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pd.DataFrame: Dataframe containing the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">])</span></div>
 </div>
 
 </pre></div>
