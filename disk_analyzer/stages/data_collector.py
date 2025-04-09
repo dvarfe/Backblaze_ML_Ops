@@ -9,8 +9,7 @@ from disk_analyzer.utils.constants import BATCHSIZE
 
 
 class DataCollector:
-    """
-    Class responsible for collecting the data.
+    """Class responsible for collecting the data.
 
     Accepts paths to various data sources, splits the data into batches, and copies it into storage.
 
@@ -44,9 +43,15 @@ class DataCollector:
             raise ValueError('Storage path must not be in paths')
 
     def __list_csv(self, paths: List[str]) -> List[str]:
-        '''
-        Returns a list of csv files in the paths
-        '''
+        """Returns a list of csv files in the paths
+
+        Args:
+            paths (List[str]): Paths to search for csv files.
+
+        Returns:
+            List[str]: CSV files found in the paths
+        """
+
         csv_files = []
         for path in paths:
             files = os.listdir(path)
@@ -60,7 +65,7 @@ class DataCollector:
         '''
         if not os.path.exists(self.__storage_path):
             os.mkdir(self.__storage_path)
-
+        print('Batching!')
         # additional file to save information about batches
         df_contents = pd.DataFrame(
             columns=['batchnum', 'min_date', 'max_date'])
@@ -74,7 +79,8 @@ class DataCollector:
         df_list = []
         batchnum = 0
 
-        for file in old_files:
+        for idx, file in enumerate(old_files):
+            print(f'Processing file {idx}/{len(old_files)}')
 
             df = pd.read_csv(file)
             df['date'] = df['date'].astype('datetime64[ns]')
@@ -117,13 +123,17 @@ class DataCollector:
         Collects the data from various sources and stores it in batchesbatches.
         Creates two categorial features: 'brand' and 'model'.
         '''
+        print('Begin preparation')
         files = self.__list_csv(self.__paths)
         if not os.path.exists(self.__storage_path):
             os.mkdir(self.__storage_path)
+        # TODO: process several files at once
         for file in files:
             df = pd.read_csv(file)
             df['date'] = pd.to_datetime(df['date'])
             df['season'] = df['date'].dt.month_name()
             df.to_csv(os.path.join(self.__storage_path,
                                    os.path.basename(file)), index=False)
+        print('End preparation')
+
         self.batch_resize()

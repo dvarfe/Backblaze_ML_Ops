@@ -1,6 +1,7 @@
 from typing import List, Tuple
 from datetime import datetime
 import pandas as pd
+from numpy.typing import NDArray
 from disk_analyzer.utils.constants import STATIC_STATS, STATIC_STATS_DESCRIPTION, DYNAMIC_STATS, DYNAMIC_STATS_DESCRIPTION
 
 
@@ -65,7 +66,7 @@ class DataStats():
         #     'mean_observ_per_day': self.calculate_dynamic_mean_observ_per_day
         # }
 
-    def __delete_truncated(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    def __delete_truncated(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, NDArray]:
         """Method to delete truncated disks from the dataframe.
 
         Args:
