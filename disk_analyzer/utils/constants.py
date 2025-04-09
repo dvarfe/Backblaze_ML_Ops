@@ -1,7 +1,13 @@
+from sklearn.linear_model import LogisticRegression  # type: ignore
+from sklearn.svm import SVC  # type: ignore
+from typing import Union
+import sys
+from disk_analyzer.models.DLClassifier import DLClassifier
+
 # Data Collector constants
-BATCHSIZE = 10_000
+BATCHSIZE = 500_000
 COLLECTOR_CFG = './analyzer_cfg.json'
-STORAGE_PATH = './Data_collected'
+STORAGE_PATH = './Data/Data_collected'
 
 # Data Analyzer constants
 STATIC_STATS = [
@@ -52,3 +58,10 @@ DYNAMIC_STATS_DESCRIPTION = {
     'failure_rate': 'rate of disks that have failed at the day/month.',
     'mean_observ_per_day': 'mean number of observations.'
 }
+
+# Model Pipeline constants
+MODEL_TYPES = Union[LogisticRegression, SVC, DLClassifier]
+
+# Data Preprocessor constants
+PREPROCESSOR_STORAGE = './Data/preprocessed'
+TEST_SIZE = 0.2
