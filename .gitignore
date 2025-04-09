@@ -7,3 +7,4 @@ Data_collected
 Sources
 __pycache__
 .vscode
+.mypy_cache
