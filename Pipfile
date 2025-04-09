@@ -6,10 +6,14 @@ name = "pypi"
 [packages]
 pandas = "*"
 matplotlib = "*"
+torch = "*"
+scikit-learn = "*"
 
 [dev-packages]
 sphinx = "*"
 sphinx-rtd-theme = "*"
+mypy = "*"
+pandas-stubs = "*"
 
 [requires]
 python_version = "3.12"
