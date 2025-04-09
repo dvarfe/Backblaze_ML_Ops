@@ -155,11 +155,7 @@ class RelAnalyzer(cmd.Cmd):
         args: mode (str)
         """
         mode = args.split()[0]
-        if mode == 'date' or mode == 'batch':
-            self.mode = mode
-            print(f'Mode succesfully changed to {self.mode}')
-        else:
-            print('Incorrect value for mode!')
+        controller.set_mode(mode)
 
     def do_set_borders(self, args):
         """
@@ -172,30 +168,7 @@ class RelAnalyzer(cmd.Cmd):
         if len(args_split) != 2:
             print('Incorrect number of arguments!')
         else:
-            if self.mode == 'date':
-                try:
-                    if args_split[0] == '-1':
-                        self.start_idx = None
-                    else:
-                        self.start_idx = datetime.strptime(
-                            args_split[0], '%Y-%m-%d')
-                    if args_split[1] == '-1':
-                        self.end_idx = None
-                    else:
-                        self.end_idx = datetime.strptime(
-                            args_split[1], '%Y-%m-%d')
-                except:
-                    print('Incorrect value for borders!')
-            elif self.mode == 'batch':
-                try:
-                    if args_split[0] == '-1':
-                        self.start_idx = None
-                    else:
-                        self.start_idx = int(args_split[0])
-                    if args_split[1] == '-1':
-                        self.end_idx = None
-                except:
-                    print('Incorrect value for borders!')
+            controller.set_borders(args_split[0], args_split[1])
 
     def do_help_data_stats(self, args):
         print('Static data statistics:')
@@ -219,9 +192,13 @@ class RelAnalyzer(cmd.Cmd):
 
         args_split = data_stats_parser.parse_args(shlex.split(args))
         figpath = args_split.figpath
-        stats = self.controller.get_data_statistics(self.storage_path,
-                                                    args_split.static_stats, args_split.dynamic_stats, args_split.freq, figpath, self.mode, self.start_idx, self.end_idx)
+        stats = self.controller.get_data_statistics(
+            self.storage_path, args_split.static_stats, args_split.dynamic_stats, args_split.freq, figpath, self.mode, self.start_idx, self.end_idx)
         self.viewer.show_stats(*stats)
+
+    def do_preprocess(self, args):
+        # TODO: Add arguments
+        self.controller.preprocess_data()
 
     def do_exit(self, args):
         return True
