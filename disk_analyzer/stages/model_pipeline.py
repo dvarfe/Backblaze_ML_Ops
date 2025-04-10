@@ -1,6 +1,7 @@
 import shutil  # Не забудьте импортировать в начале файла
 import os
 import shutil
+import glob
 import pandas as pd
 
 from typing import Optional, Dict, List
@@ -28,6 +29,7 @@ class ModelPipeline:
                  model_params: Optional[Dict] = None):
 
         self.__model = model
+        self.__train_cols = None
         self.batchsize = batchsize
         self.prep_storage_path = prep_storage_path
         self.data_paths = data_paths
@@ -94,17 +96,35 @@ class ModelPipeline:
         elif mode == 'test' or mode == 'tune':
             _ = self.__data_preprocessor.fit_transform(self.open_data(data_paths))
 
-    def fit(self):
+    def fit(self, model=None):
         """Fit model
         """
-        pass
+        if model != None:
+            self.__model = model
+        train_csv_paths = glob.glob(os.path.join(self.prep_storage_path, 'Train', '*.csv'))
+        for file in train_csv_paths:
+            df = pd.read_csv(file)
+            X, y = df[df.columns.difference(['failure', 'serial_number'])], df['failure'].values
 
-    def predict(self):
+            self.__train_cols = X.columns
+            # self.__model.partial_fit(X, y, classes=[0, 1])
+            self.__model.fit(X, y)
+
+    def predict(self, X: pd.DataFrame) -> Optional[pd.Series]:
         """Return predictions
         """
-        pass
+        if self.__model is None:
+            print('Please fit the model first')
+            return None
+        else:
+            if 'failure' in X.columns:
+                df_cols = list(X.columns.difference(['failure']))
+            else:
+                df_cols = list(X.columns)
+            df_cols = [col for col in df_cols if col in self.__train_cols]
+            return pd.Series(self.__model.predict(X.loc[:, df_cols]))
 
-    def predict_proba(self):
+    def predict_proba(self, X):
         """Return predictions
         """
-        pass
+        return self.__model.predict_proba(X.loc[:, self.__train_cols])

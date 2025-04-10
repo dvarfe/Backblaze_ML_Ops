@@ -3,13 +3,11 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional, Self
 import numpy as np
 from numpy.typing import NDArray
-import glob
-import os
 
 from sklearn.base import BaseEstimator, TransformerMixin  # type: ignore
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
-from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE
+from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE
 
 
 class TrainTestSplitter():
@@ -180,15 +178,13 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
             batchsize(int, optional): Number of observations in each batch. Defaults to BATCHSIZE.
             verbose(bool, optional): Whether to print logs. Defaults to True.
         """
-        df = self.open_data(storage_paths)
         self.batchsize = batchsize
         self.__verbose = verbose
-        self.__normalized_features = [feature for feature in df.columns if feature.__contains__('normalized')]
 
         self._time_transformer = TimeTransformer()
         self._drop_doubles = DropDoubles()
         self._drop_duplicates = DropDuplicates()
-        self._feature_filter = FeatureFilter(features_to_remove=self.__normalized_features)
+        self._feature_filter = FeatureFilter(features_to_remove=FEATURES_TO_REMOVE)
         self._nan_imputer = NanImputer()
         self.categorical_encoder = CategoricalEncoder()
         self.standard_scaler = StandardScaler()
@@ -269,17 +265,18 @@ class TimeTransformer(BaseEstimator, TransformerMixin):
         self.time_column = time_column
 
     def fit(self, X, y=None):
-        time_df = pd.to_datetime(X[self.time_column])
-        self.min_date = time_df.min()
         return self
 
     def transform(self, X, y=None):
         X[self.time_column] = X[self.time_column].astype('datetime64[ns]')
 
-        X.loc[:, self.time_column] = pd.to_datetime(X.loc[:, self.time_column]) - self.min_date
-        X.loc[:, self.time_column] = X.loc[:, self.time_column].dt.days.astype(int)
+        X.loc[:, 'time'] = (X[self.time_column] - X.groupby('serial_number')
+                            [self.time_column].transform('min')).dt.days.astype(int)
+        # X.loc[:, self.time_column] = pd.to_datetime(X.loc[:, self.time_column]) - self.min_date
+        # X.loc[:, 'time'] = X.loc[:, self.time_column].dt.days.astype(int)
 
-        X = X.rename(columns={self.time_column: 'time'})
+        X.drop(self.time_column, axis=1, inplace=True)
+        # # X = X.rename(columns={self.time_column: 'time'})
         return X
 
 

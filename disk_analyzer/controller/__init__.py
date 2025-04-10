@@ -2,6 +2,9 @@ from typing import Tuple, List, Optional
 import pandas as pd
 import os
 from datetime import datetime
+
+from sklearn.linear_model import SGDClassifier  # type: ignore
+
 from disk_analyzer.stages.data_collector import DataCollector
 from disk_analyzer.stages.data_stats import DataStats
 from disk_analyzer.stages.model_pipeline import ModelPipeline
@@ -18,6 +21,7 @@ class Controller():
         self.start_idx = None
         self.end_idx = None
         self.mode = 'date'
+        self.__is_preprocessed = False
         self.paths = []
 
     def set_mode(self, mode: str):
@@ -51,6 +55,8 @@ class Controller():
                     self.start_idx = int(start_idx)
                 if end_idx == '-1':
                     self.end_idx = None
+                else:
+                    self.end_idx = int(end_idx)
             except:
                 print('Incorrect value for borders!')
 
@@ -97,8 +103,9 @@ class Controller():
                 self.start_idx = 0
             if end_idx is None:
                 self.end_idx = contents['batchnum'].max()
-            paths = [os.path.join(storage_path, f'{batchnum}.csv') for batchnum in contents[(
-                self.start_idx <= contents['batchnum']) & (contents['batchnum'] <= self.end_idx)]['batchnum']]
+            batches = contents[(self.start_idx <= contents['batchnum']) &
+                               (contents['batchnum'] <= self.end_idx)]['batchnum']
+            paths = [os.path.join(storage_path, f'batch_{batchnum}.csv') for batchnum in batches]
 
         elif mode == 'date':
             if start_idx is None:
@@ -133,6 +140,21 @@ class Controller():
         if self.model_pipeline is None:
             self.model_pipeline = ModelPipeline(paths)
         self.model_pipeline.preprocess(data_paths=paths, mode=model_mode)
+        self.__is_preprocessed = True
+
+    def fit(self, model_name: str = 'logistic_regression', storage_path: str = STORAGE_PATH):
+        if not self.__is_preprocessed:
+            self.preprocess_data(storage_path)
+        if model_name == 'logistic_regression':
+            model = SGDClassifier(loss='log_loss')
+            self.model_pipeline.fit(model=model)
+
+    def predict(self, path: str):
+        df = pd.read_csv(path)
+        pred = self.model_pipeline.predict(df)
+        if not os.path.exists(f'Predictions/predictions.csv'):
+            os.mkdir('Predictions')
+        pred.to_csv(f'Predictions/prediction.csv', index=False)
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open data from the given paths.
