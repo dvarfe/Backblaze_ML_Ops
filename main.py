@@ -110,6 +110,7 @@ class RelAnalyzer(cmd.Cmd):
             path1, path2, path3: Paths to data sources.
             -b, --batchsize N: Set batchsize to N.
             -c, --cfgpath: Path to config file.
+            -s, --storagepath: Path to storage directory
 
         Config file is a JSON-file of the following structure:
         {
@@ -147,15 +148,29 @@ class RelAnalyzer(cmd.Cmd):
 
     def do_set_mode(self, args):
         """
-        Changes the mode of analyzer to daily or weekly.
-        Default is daily.
-        This mode defines whether data is to work with determined with date or batch number.
+        Changes the mode of analyzer to date or weekly.
+        Default is date.
+        This mode defines whether data to work with is determined with date or batch number.
 
         Command-line arguments:
         args: mode (str)
         """
-        mode = args.split()[0]
-        controller.set_mode(mode)
+        args_split = args.split()
+        if len(args_split) != 1:
+            print('Incorrect input!')
+        else:
+            if args_split[0] in ['date', 'batch']:
+                self.mode = args.split()[0]
+                self.controller.set_mode(self.mode)
+            else:
+                print('Incorrect value for mode!')
+
+    def do_show_params(self, args):
+        """Shows parameters of the data slice
+        """
+        print(f'Mode: {self.mode}')
+        print(f'Start index: {self.start_idx}')
+        print(f'End index: {self.end_idx}')
 
     def do_set_borders(self, args):
         """
@@ -168,9 +183,13 @@ class RelAnalyzer(cmd.Cmd):
         if len(args_split) != 2:
             print('Incorrect number of arguments!')
         else:
+            self.start_idx = args_split[0]
+            self.end_idx = args_split[1]
             controller.set_borders(args_split[0], args_split[1])
 
     def do_help_data_stats(self, args):
+        """Shows help about each data statistics
+        """
         print('Static data statistics:')
         for key in STATIC_STATS_DESCRIPTION:
             print(f'\t{key}: {STATIC_STATS_DESCRIPTION[key]}')
@@ -188,6 +207,8 @@ class RelAnalyzer(cmd.Cmd):
             Usage: data_stats -s list of statistics names. 
             Whole list of statistics names can be found in stages/data_stats.py
             -d, --dynamic - dynamic statistics to calculate.
+            -q, --freq - frequency of dynamic statistics(daily/monthly).
+            -f, --figpath - path to directory for saving figures.
         """
 
         args_split = data_stats_parser.parse_args(shlex.split(args))
@@ -196,7 +217,30 @@ class RelAnalyzer(cmd.Cmd):
             self.storage_path, args_split.static_stats, args_split.dynamic_stats, args_split.freq, figpath, self.mode, self.start_idx, self.end_idx)
         self.viewer.show_stats(*stats)
 
+    def do_fit(self, args):
+        """Fits model
+
+        Args:
+            args (): logistic_regression/nnet/svm #TODO
+        """
+        args_split = shlex.split(args)
+        if len(args_split) == 1:
+            self.controller.fit(model_name=args_split[0])
+        else:
+            print('Incorrect input!')
+
+    def do_predict(self, args):
+        """Make predictions
+
+        Accepts path to the directory with preprocessed data.
+        """
+        args_split = shlex.split(args)
+        path = args_split[0]
+        self.controller.predict(path)
+
     def do_preprocess(self, args):
+        """Preprocess data
+        """
         # TODO: Add arguments
         self.controller.preprocess_data()
 
