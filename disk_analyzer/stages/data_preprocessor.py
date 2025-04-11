@@ -7,7 +7,8 @@ from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, TransformerMixin  # type: ignore
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
-from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE
+
+from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
 
 
 class TrainTestSplitter():
@@ -188,13 +189,16 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         self._nan_imputer = NanImputer()
         self.categorical_encoder = CategoricalEncoder()
         self.standard_scaler = StandardScaler()
+        self.random_sampler = RandomSampler()
+
         self.__preprocessing_pipeline = {'TimeTransformer': self._time_transformer,
                                          'DropDoubles': self._drop_doubles,
                                          'DropDuplicates': self._drop_duplicates,
                                          'FeatureFilter': self._feature_filter,
                                          'Nan_imputer': self._nan_imputer,
                                          'CategoricalEncoder': self.categorical_encoder,
-                                         'StandardScaler': self.standard_scaler}
+                                         'StandardScaler': self.standard_scaler,
+                                         'RandomSampler': self.random_sampler}
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open all csv files specified in paths
@@ -456,3 +460,26 @@ class CategoricalEncoder(BaseEstimator, TransformerMixin):
         )
 
         return pd.DataFrame(combined, columns=new_columns, index=X.index)
+
+
+class RandomSampler():
+    def __init__(self, n_samples: int = TRAIN_SAMPLES):
+        self.n_samples = n_samples
+
+    def fit_transform(self, X, y=None):
+        self.shuffled_df_idx = (X[~(X['time'] == X.groupby('time')['time'].transform('max')) &
+                                ~(X['time'] == X.groupby('time')['time'].transform('min'))]
+                                .sample(frac=1, random_state=42).
+                                loc[:, ['serial_number']].
+                                groupby('serial_number'))
+
+        X_sampled = X.loc[self.shuffled_df_idx.head(self.n_samples - 1).index, :]
+
+        X_sampled = pd.concat([X_sampled,
+                               X[
+                                   (X['time'] == X.groupby('serial_number')['time'].transform('max')) |
+                                   (X['time'] == X.groupby('serial_number')['time'].transform('min'))]])
+        return X_sampled
+
+    def transform(self, X, y=None):
+        return X
