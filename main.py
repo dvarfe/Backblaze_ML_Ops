@@ -124,7 +124,7 @@ class RelAnalyzer(cmd.Cmd):
         self.controller.collect_data(paths=list(args_parsed.dirpath),
                                      storage_path=args_parsed.storage_path,
                                      batchsize=args_parsed.batchsize,
-                                     cfgpath=args_parsed.cfgpath)
+                                     cfgpath=args_parsed.cfgpath)  # Invalid path, invalid batchsize
         print('Data succesfully collected!')
 
     def do_rebatch(self, args):
@@ -221,7 +221,7 @@ class RelAnalyzer(cmd.Cmd):
         """Fits model
 
         Args:
-            args (): logistic_regression/nnet/svm #TODO
+            args (): logistic_regression/NN/svm #TODO
         """
         args_split = shlex.split(args)
         if len(args_split) == 1:
@@ -237,6 +237,14 @@ class RelAnalyzer(cmd.Cmd):
         args_split = shlex.split(args)
         path = args_split[0]
         self.controller.predict(path)
+
+    def do_predict_proba(self, args):
+        """Predict probabilities
+        Accepts path to the directory with preprocessed data.
+        """
+        args_split = shlex.split(args)
+        path = args_split[0]
+        self.controller.predict_proba(path)
 
     def do_preprocess(self, args):
         """Preprocess data

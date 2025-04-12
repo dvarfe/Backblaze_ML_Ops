@@ -65,6 +65,7 @@ MODEL_TYPES = Union[SGDClassifier]
 # Data Preprocessor constants
 PREPROCESSOR_STORAGE = './Data/preprocessed'
 TEST_SIZE = 0.2
+TRAIN_SAMPLES = 50
 FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_normalized',
                       'smart_4_normalized', 'smart_5_normalized', 'smart_7_normalized',
                       'smart_8_normalized', 'smart_9_normalized', 'smart_10_normalized',
@@ -79,3 +80,6 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_241_normalized', 'smart_242_normalized', 'smart_250_normalized',
                       'smart_251_normalized', 'smart_252_normalized', 'smart_254_normalized',
                       'smart_255_normalized']
+
+# Training constants
+TRAIN_BATCHSIZE = 32

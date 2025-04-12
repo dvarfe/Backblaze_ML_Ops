@@ -71,8 +71,6 @@ class DataCollector:
             columns=['batchnum', 'min_date', 'max_date'])
 
         old_files = self.__list_csv([self.__storage_path])
-        old_files = [file for file in old_files if os.path.basename(
-            file) != 'contents.csv']
         old_files.sort()
 
         df_size = 0
@@ -98,8 +96,6 @@ class DataCollector:
                                                self.__batchsize: (i + 1) * self.__batchsize, :]
                     new_batch.to_csv(os.path.join(
                         self.__storage_path, f'batch_{batchnum}.csv'), index=False)
-                    df_contents.loc[batchnum] = [
-                        batchnum, new_batch['date'].min(), new_batch['date'].max()]
                     batchnum += 1
 
                 if df_concat.shape[0] % self.__batchsize != 0:
@@ -113,10 +109,6 @@ class DataCollector:
             df_concat = pd.concat(df_list, axis=0, ignore_index=True)
             df_concat.to_csv(os.path.join(self.__storage_path,
                                           f'batch_{batchnum}.csv'), index=False)
-            df_contents.loc[batchnum] = [
-                batchnum, new_batch['date'].min(), new_batch['date'].max()]
-        df_contents.to_csv(os.path.join(
-            self.__storage_path, 'contents.csv'), index=False)
 
     def collect_data(self):
         '''

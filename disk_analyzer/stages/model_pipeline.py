@@ -1,12 +1,16 @@
 import os
 import shutil
 import glob
+from typing import Optional, Dict, List, Union
+
 import pandas as pd
+from torch.utils.data import DataLoader
 
-from typing import Optional, Dict, List
-
-from disk_analyzer.utils.constants import MODEL_TYPES, PREPROCESSOR_STORAGE, BATCHSIZE
+from disk_analyzer.utils.constants import MODEL_TYPES, PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE
 from disk_analyzer.stages.data_preprocessor import TrainTestSplitter, DataPreprocessor
+from disk_analyzer.models.SKLearnClassifier import SKLClassifier
+from disk_analyzer.models.DLClassifier import DLClassifier
+from disk_analyzer.models.Dataset import DiskDataset
 
 
 class ModelPipeline:
@@ -18,8 +22,7 @@ class ModelPipeline:
     """
 
     def __init__(self,
-                 data_paths: List[str],
-                 model: Optional[MODEL_TYPES] = None,
+                 data_paths: Optional[List[str]] = None,
                  train_test_splitter: Optional[TrainTestSplitter] = None,
                  data_preprocessor: Optional[DataPreprocessor] = None,
                  rm_truncated_from_test: bool = True,
@@ -27,8 +30,6 @@ class ModelPipeline:
                  prep_storage_path: str = PREPROCESSOR_STORAGE,
                  model_params: Optional[Dict] = None):
 
-        self.__model = model
-        self.__train_cols = None
         self.batchsize = batchsize
         self.prep_storage_path = prep_storage_path
         self.data_paths = data_paths
@@ -47,7 +48,7 @@ class ModelPipeline:
         """
         return pd.concat([pd.read_csv(path) for path in paths])
 
-    def preprocess(self, data_paths: List[str], mode: str = 'train') -> None:
+    def preprocess(self, data_paths: List[str], mode: str = 'train') -> str:
         """Preprocess data
 
         Args:
@@ -67,6 +68,8 @@ class ModelPipeline:
             df_train, df_test = self.__data_preprocessor.fit_transform(
                 df_train), self.__data_preprocessor.transform(df_test)
 
+            self.features_num = df_train.shape[1] - 1
+
             # print('Save Preprocessed Data')
             # for sample_name, df in zip(['Train', 'Test'], [df_train, df_test]):
             #     if not os.path.exists(os.path.join(self.prep_storage_path, sample_name)):
@@ -78,7 +81,7 @@ class ModelPipeline:
 
             print('Save Preprocessed Data')
 
-            for sample_name, df in zip(['Train', 'Test'], [df_train, df_test]):
+            for sample_name, df in zip(['train', 'test'], [df_train, df_test]):
                 sample_dir = os.path.join(self.prep_storage_path, sample_name)
 
                 if os.path.exists(sample_dir):
@@ -94,36 +97,55 @@ class ModelPipeline:
                     batch.to_csv(os.path.join(sample_dir, f'{i}_preprocessed.csv'), index=False)
         elif mode == 'test' or mode == 'tune':
             _ = self.__data_preprocessor.fit_transform(self.open_data(data_paths))
+        return sample_dir
 
-    def fit(self, model=None):
+    def set_model(self, model, interface='sklearn'):
+        """Set model
+
+        Args:
+            model : Model
+            interface (str, optional): Sklearn or torch. Defaults to 'sklearn'.
+        """
+        if interface == 'sklearn':
+            self._model = SKLClassifier(model)
+        elif interface == 'torch':
+            self._model = model
+        else:
+            raise ValueError('Invalid interface. Supported interfaces are "sklearn" and "torch"')
+
+    def fit(self, paths: List[str]):
         """Fit model
         """
-        if model != None:
-            self.__model = model
-        train_csv_paths = glob.glob(os.path.join(self.prep_storage_path, 'Train', '*.csv'))
-        for file in train_csv_paths:
-            df = pd.read_csv(file)
-            X, y = df[df.columns.difference(['failure', 'serial_number'])], df['failure'].values
+        if self._model is None:
+            raise ValueError("Model not set")
+        ds = DiskDataset('train', paths)
 
-            self.__train_cols = X.columns
-            # self.__model.partial_fit(X, y, classes=[0, 1])
-            self.__model.fit(X, y)
+        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
 
-    def predict(self, X: pd.DataFrame) -> Optional[pd.Series]:
+        self._model.fit(dl)
+
+    def predict(self, paths: List[str]):
         """Return predictions
         """
-        if self.__model is None:
-            print('Please fit the model first')
-            return None
-        else:
-            if 'failure' in X.columns:
-                df_cols = list(X.columns.difference(['failure']))
-            else:
-                df_cols = list(X.columns)
-            df_cols = [col for col in df_cols if col in self.__train_cols]
-            return pd.Series(self.__model.predict(X.loc[:, df_cols]))
 
-    def predict_proba(self, X):
+        if self._model is None:
+            raise ValueError("Model not fitted")
+
+        ds = DiskDataset('test', paths)
+
+        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+
+        return self._model.predict(dl)
+
+    def predict_proba(self, paths: List[str]):
         """Return predictions
         """
-        return self.__model.predict_proba(X.loc[:, self.__train_cols])
+
+        if self._model is None:
+            raise ValueError("Model not fitted")
+
+        ds = DiskDataset('test', paths)
+
+        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+
+        return self._model.predict_proba(dl)

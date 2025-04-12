@@ -1,14 +1,16 @@
-from typing import Tuple, List, Optional
-import pandas as pd
+from typing import Tuple, List
 import os
+import glob
 from datetime import datetime
 
+import pandas as pd
 from sklearn.linear_model import SGDClassifier  # type: ignore
 
 from disk_analyzer.stages.data_collector import DataCollector
 from disk_analyzer.stages.data_stats import DataStats
 from disk_analyzer.stages.model_pipeline import ModelPipeline
-from disk_analyzer.utils.constants import STATIC_STATS, STORAGE_PATH
+from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH
+from disk_analyzer.models.DLClassifier import DLClassifier
 
 
 class Controller():
@@ -25,6 +27,11 @@ class Controller():
         self.paths = []
 
     def set_mode(self, mode: str):
+        """Set the mode of the pipeline. Defines the logic by which data to process is determined.
+
+        Args:
+            mode (str): Can be either date or batch. Default is date.
+        """
         if mode == 'date' or mode == 'batch':
             if self.mode != mode:
                 self.start_idx = None
@@ -73,88 +80,72 @@ class Controller():
         DataCollector(paths=[], batchsize=new_batchsize,
                       cfgpath='').collect_data()
 
-    def get_data_statistics(self,  storage_path, static_stats, dynamic_stats, dynamic_freq, figpath) -> Tuple[dict, str]:
+    def get_data_statistics(self,  storage_path: str, static_stats: List[str], dynamic_stats: List[str], dynamic_freq: str, figpath: str) -> Tuple[dict, str]:
+        """Returns statistics of the collected data.
+
+        Args:
+            storage_path (str): Path to the storage directory.
+            static_stats (Dict[str]): Static stats to collect
+            dynamic_stats (Dict[str]): Dynamic stats to collect
+            dynamic_freq (str): Frequency of dynamic stats(daily or monthly)
+            figpath (str): Path to save figures
+
+        Returns:
+            Tuple[dict, str]: Static stats and figures path
+        """
         data_stats = DataStats(
             static_stats, dynamic_stats, dynamic_freq, figpath)
-        paths = self.select_data(storage_path, self.mode, self.start_idx, self.end_idx)
+        paths = glob.glob(os.path.join(storage_path, '*.csv'))
         df = self.open_data(paths)
         stats = data_stats.calculate_stats(df)
         return stats
 
-    def select_data(self, storage_path: str, mode: str, start_idx: Optional[int | str], end_idx: Optional[int | str]) -> List[str]:
-        """Open the data stored in the storage path, filter it based on the start and end index and return the dataframe.
-
-        Args:
-            storage_path (str): Path to the storage
-            mode (str): Mode of operation. Can be 'batch' or 'date'.
-            start_idx (int  |  str]): 
-            end_idx (int  |  str]): 
-
-        Returns:
-            pd.DataFrame: Dataframe containing the data.
-        """
-        contents = pd.read_csv(os.path.join(storage_path, 'contents.csv'))
-        contents['min_date'], contents['max_date'] = pd.to_datetime(
-            contents['min_date']), pd.to_datetime(contents['max_date'])
-
-        self.start_idx, self.end_idx = start_idx, end_idx
-        if mode == 'batch':
-            if start_idx is None:
-                self.start_idx = 0
-            if end_idx is None:
-                self.end_idx = contents['batchnum'].max()
-            batches = contents[(self.start_idx <= contents['batchnum']) &
-                               (contents['batchnum'] <= self.end_idx)]['batchnum']
-            paths = [os.path.join(storage_path, f'batch_{batchnum}.csv') for batchnum in batches]
-
-        elif mode == 'date':
-            if start_idx is None:
-                self.start_idx = contents['min_date'].min()
-            if end_idx is None:
-                self.end_idx = contents['max_date'].max()
-
-            first_batch = contents.loc[(contents['min_date'] <= self.start_idx) & (
-                contents['max_date'] >= self.start_idx)]['batchnum'].iloc[0]
-
-            last_batch = contents.loc[(contents['min_date'] <= self.end_idx) & (
-                contents['max_date'] >= self.end_idx)]['batchnum'].iloc[0]
-            paths = [os.path.join(storage_path, f'batch_{batchnum}.csv') for batchnum in range(
-                first_batch, last_batch + 1)]
-        else:
-            raise ValueError('Mode must be either batch or date')
-        self.paths = paths
-        return self.paths
-
-        # if mode == 'batch':
-        #     df = pd.concat([pd.read_csv(path) for path in paths])
-        #     df['date'] = pd.to_datetime(df['date'])
-        # elif mode == 'date':
-        #     df = pd.concat([pd.read_csv(path) for path in paths])
-        #     df['date'] = pd.to_datetime(df['date'])
-        #     df = df[(df['date'] >= self.start_idx) & (df['date'] <= self.end_idx)]
-        # self.paths = paths
-        # return df
-
     def preprocess_data(self, storage_path: str = STORAGE_PATH, model_mode: str = 'train'):
-        paths = self.select_data(storage_path, self.mode, self.start_idx, self.end_idx)
+        paths = glob.glob(os.path.join(storage_path, '*.csv'))
         if self.model_pipeline is None:
             self.model_pipeline = ModelPipeline(paths)
         self.model_pipeline.preprocess(data_paths=paths, mode=model_mode)
         self.__is_preprocessed = True
 
-    def fit(self, model_name: str = 'logistic_regression', storage_path: str = STORAGE_PATH):
-        if not self.__is_preprocessed:
-            self.preprocess_data(storage_path)
+    def fit(self, model_name: str = 'logistic_regression', preprocessed_path: str = PREPROCESSOR_STORAGE):
+        if self.model_pipeline is None:
+            self.model_pipeline = ModelPipeline()
         if model_name == 'logistic_regression':
             model = SGDClassifier(loss='log_loss')
-            self.model_pipeline.fit(model=model)
+            self.model_pipeline.set_model(model, interface='sklearn')
+        elif model_name == 'NN':
+            model = DLClassifier(12)  # TODO: fix constant
+            self.model_pipeline.set_model(model, interface='torch')
+        else:
+            raise ValueError("Model name must be either 'logistic_regression' or 'NN'.")
+        batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
+        self.model_pipeline.fit(batches)
 
     def predict(self, path: str):
-        df = pd.read_csv(path)
-        pred = self.model_pipeline.predict(df)
-        if not os.path.exists(f'Predictions/predictions.csv'):
-            os.mkdir('Predictions')
-        pred.to_csv(f'Predictions/prediction.csv', index=False)
+        """Model inference on a single file. The results are saved in the 'Predictions' folder.
+
+        Args:
+            path (str): Input file
+        """
+        predictions_path = 'Predictions/'
+        pred = self.model_pipeline.predict([path])
+        if not os.path.exists(predictions_path):
+            os.mkdir(predictions_path)
+        pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
+        print(f'Predictions saved to {predictions_path}/prediction.csv')
+
+    def predict_proba(self, path: str):
+        """Model inference on a single file. The results are saved in the 'Predictions' folder.
+            Returns probabilities of event for each event in the input file.
+        Args:
+            path (str): Input file
+        """
+        predictions_path = 'Predictions/'
+        pred = self.model_pipeline.predict_proba([path])
+        if not os.path.exists(predictions_path):
+            os.mkdir(predictions_path)
+        pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
+        print(f'Predictions saved to {predictions_path}/prediction.csv')
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open data from the given paths.
