@@ -1,0 +1,5 @@
+set_mode batch
+set_borders 0 0
+show_params
+fit logistic_regression
+predict_proba /home/dvarfe/Documents/HW/Backblaze_ML_Ops/Data/preprocessed/Train/0_preprocessed.csv
