@@ -1,4 +1,3 @@
-import shutil  # Не забудьте импортировать в начале файла
 import os
 import shutil
 import glob
