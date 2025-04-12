@@ -38,16 +38,17 @@ class DiskDataset(IterableDataset):
                 header = f.readline().split(',')
                 id_idx = header.index('serial_number')
                 label_idx = header.index('failure')
+                time_idx = header.index('time')
                 for line in f:
                     line = line.strip()
-                    yield self._parse_line(line, label_idx, id_idx)
+                    yield self._parse_line(line, label_idx, id_idx, time_idx)
 
-    def _parse_line(self, line: str, label_idx: int, id_idx: int) -> Tuple[torch.Tensor, int]:
+    def _parse_line(self, line: str, label_idx: int, id_idx: int, time_idx: int) -> Tuple[str, int, torch.Tensor, int]:
         # Parse the line and convert it to a tensor
         data_line = line.split(',')
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [label_idx, id_idx]]
         y = int(data_line[label_idx])
-        return torch.tensor(data_vec), y
+        return data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y
 
     def _split_files_for_workers(self, worker_info):
         # Split files across workers to avoid duplicates

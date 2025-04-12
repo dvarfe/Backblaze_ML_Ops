@@ -82,4 +82,6 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_255_normalized']
 
 # Training constants
+OBSERV_MODE = 'independent'
+EPOCHS = 5
 TRAIN_BATCHSIZE = 32

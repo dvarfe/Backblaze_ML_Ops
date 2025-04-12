@@ -1,3 +1,4 @@
+from typing import List, Tuple
 from torch.utils.data import DataLoader
 import numpy as np
 
@@ -20,7 +21,7 @@ class SKLClassifier():
         Incrementally trains the model using batches from the dataloader.
         """
 
-        for X, y in dataloader:
+        for _, _, X, y in dataloader:
             X_np = X.numpy()
             y_np = y.numpy()
 
@@ -30,22 +31,23 @@ class SKLClassifier():
             else:
                 self._model.partial_fit(X_np, y_np)
 
-    def predict(self, dataloader: DataLoader) -> np.ndarray:
+    def predict(self, dataloader: DataLoader, threshold: float = 0.5) -> Tuple[List[str], List[int], np.ndarray]:
         """
         Predict class labels using the trained model.
         """
-        X_all = []
-        for X, _ in dataloader:
-            X_all.append(X.numpy())
-        X_np = np.concatenate(X_all, axis=0)
-        return self._model.predict(X_np)
+        serial_numbers, times, probs = self.predict_proba(dataloader)
+        return serial_numbers, times, (probs >= threshold).astype(int)
 
-    def predict_proba(self, dataloader: DataLoader) -> np.ndarray:
+    def predict_proba(self, dataloader: DataLoader) -> Tuple[List[str], List[int], np.ndarray]:
         """
         Predict class probabilities using the trained model.
         """
-        X_all = []
-        for X, _ in dataloader:
-            X_all.append(X.numpy())
-        X_np = np.concatenate(X_all, axis=0)
-        return self._model.predict_proba(X_np)
+        probs = []
+        serial_numbers = []
+        times = []
+        for serial_number, time, X, _ in dataloader:
+            outputs = self._model.predict_proba(X)[:, 1]
+            serial_numbers.extend(serial_number)
+            times.extend(time)
+            probs.extend(outputs)
+        return serial_numbers, times, np.array(probs)

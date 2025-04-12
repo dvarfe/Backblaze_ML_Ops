@@ -8,7 +8,7 @@ from sklearn.base import BaseEstimator, TransformerMixin  # type: ignore
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
 
-from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
+from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES, OBSERV_MODE
 
 
 class TrainTestSplitter():
@@ -190,6 +190,7 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         self.categorical_encoder = CategoricalEncoder()
         self.standard_scaler = StandardScaler()
         self.random_sampler = RandomSampler()
+        self.label_shifter = LabelShifter()
 
         self.__preprocessing_pipeline = {'TimeTransformer': self._time_transformer,
                                          'DropDoubles': self._drop_doubles,
@@ -198,7 +199,8 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
                                          'Nan_imputer': self._nan_imputer,
                                          'CategoricalEncoder': self.categorical_encoder,
                                          'StandardScaler': self.standard_scaler,
-                                         'RandomSampler': self.random_sampler}
+                                         'RandomSampler': self.random_sampler,
+                                         'LabelShifter': self.label_shifter}
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open all csv files specified in paths
@@ -382,6 +384,24 @@ class NanImputer(BaseEstimator, TransformerMixin):
         else:
             for key, value in self.fill_val.items():
                 X.loc[key] = X.loc[key].fillna(value)
+
+        return X
+
+
+class LabelShifter(BaseEstimator, TransformerMixin):
+    def fit_transform(self, X, y=None):
+
+        X = X.sort_values(by=['serial_number', 'time'])
+        if OBSERV_MODE == 'chain':
+            X['failure'] = X.groupby('serial_number')['failure'].shift(-1)
+        elif OBSERV_MODE == 'independent':
+            X['failure'] = X.groupby('serial_number')['failure'].transform('max')
+            X.loc[X['time'] == X.groupby('serial_number')['time'].transform('max'), 'failure'] = None
+        else:
+            raise ValueError("Wrong mode")
+
+        X = X.dropna(subset=["failure"])
+        X = X.drop('time', axis='columns')
 
         return X
 

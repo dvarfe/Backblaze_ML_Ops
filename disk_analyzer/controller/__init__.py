@@ -116,6 +116,9 @@ class Controller():
         elif model_name == 'NN':
             model = DLClassifier(12)  # TODO: fix constant
             self.model_pipeline.set_model(model, interface='torch')
+        elif model_name == 'linear_svm':
+            model = SGDClassifier(loss='hinge')
+            self.model_pipeline.set_model(model)
         else:
             raise ValueError("Model name must be either 'logistic_regression' or 'NN'.")
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
@@ -128,10 +131,13 @@ class Controller():
             path (str): Input file
         """
         predictions_path = 'Predictions/'
-        pred = self.model_pipeline.predict([path])
+        serials, times, pred = self.model_pipeline.predict([path])
         if not os.path.exists(predictions_path):
             os.mkdir(predictions_path)
-        pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
+        df_pred = pd.DataFrame(serials)
+        df_pred['time'] = times
+        df_pred['pred'] = pred
+        df_pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
         print(f'Predictions saved to {predictions_path}/prediction.csv')
 
     def predict_proba(self, path: str):
