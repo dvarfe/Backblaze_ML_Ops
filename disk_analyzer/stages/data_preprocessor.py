@@ -3,12 +3,10 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional, Self
 import numpy as np
 from numpy.typing import NDArray
-
-from sklearn.base import BaseEstimator, TransformerMixin  # type: ignore
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
 
-from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES, OBSERV_MODE
+from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
 
 
 class TrainTestSplitter():
@@ -103,7 +101,7 @@ class TrainTestSplitter():
         df_previously_truncated = df[df['serial_number'].isin(
             self.train_trunc + self.test_trunc)]
         self.trunc_remover = TruncRemover()
-        df_untruncated, _ = self.trunc_remover().fit_transform(df_previously_truncated)
+        df_untruncated, _ = self.trunc_remover.fit_transform(df_previously_truncated)
         return df_untruncated['serial_number'].unique()
 
     def update(self, df: pd.DataFrame, rm_truncated_from_test: bool = True) -> Tuple[NDArray[np.str_], NDArray[np.str_]]:
@@ -157,7 +155,7 @@ class TrainTestSplitter():
         return pd.concat([pd.read_csv(path) for path in paths])
 
 
-class DataPreprocessor(BaseEstimator, TransformerMixin):
+class DataPreprocessor():
     """Train data preprocessor class .
 
         Preprocessing steps:
@@ -182,6 +180,8 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         self.batchsize = batchsize
         self.__verbose = verbose
 
+        self.event_times = None
+
         self._time_transformer = TimeTransformer()
         self._drop_doubles = DropDoubles()
         self._drop_duplicates = DropDuplicates()
@@ -191,6 +191,7 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         self.standard_scaler = StandardScaler()
         self.random_sampler = RandomSampler()
         self.label_shifter = LabelShifter()
+        self.time_labeler = TimeLabeler()
 
         self.__preprocessing_pipeline = {'TimeTransformer': self._time_transformer,
                                          'DropDoubles': self._drop_doubles,
@@ -200,7 +201,8 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
                                          'CategoricalEncoder': self.categorical_encoder,
                                          'StandardScaler': self.standard_scaler,
                                          'RandomSampler': self.random_sampler,
-                                         'LabelShifter': self.label_shifter}
+                                         'LabelShifter': self.label_shifter,
+                                         'TimeLabeler': self.time_labeler}
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open all csv files specified in paths
@@ -215,7 +217,7 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
 
         return df
 
-    def fit_transform(self, X, y=None, **fit_params):
+    def fit_transform(self, X, y=None):
         for transformer in self.__preprocessing_pipeline:
             if self.__verbose:
                 print(f'Fit_tr {transformer}')
@@ -226,19 +228,6 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
                 X = self.__preprocessing_pipeline[transformer].fit_transform(X)
 
         return X
-
-    # def fit(self, X, y=None) -> Self:
-    #     """Fit transformers.
-    #     """
-        # for transformer in self.__preprocessing_pipeline:
-        #     if self.__verbose:
-        #         print(f'Fitting {transformer}')
-        #     if transformer == 'StandardScaler':
-        #         num_cols = X.columns.difference(['season', 'model', 'serial_number', 'time', 'date', 'failure', 'time'])
-        #         self.__preprocessing_pipeline[transformer].fit(X.loc[:, num_cols])
-        #     else:
-        #         self.__preprocessing_pipeline[transformer].fit(X)
-        # return self
 
     def transform(self, X, y=None) -> pd.DataFrame:
         """Preprocess data
@@ -258,7 +247,7 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         return X
 
 
-class TimeTransformer(BaseEstimator, TransformerMixin):
+class TimeTransformer():
     """Change date column to time in days."""
 
     def __init__(self, time_column: str = 'date'):
@@ -285,8 +274,12 @@ class TimeTransformer(BaseEstimator, TransformerMixin):
         # # X = X.rename(columns={self.time_column: 'time'})
         return X
 
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X, y)
 
-class DropDoubles(BaseEstimator, TransformerMixin):
+
+class DropDoubles():
     """Remove disks with more than one event.
     """
 
@@ -301,25 +294,33 @@ class DropDoubles(BaseEstimator, TransformerMixin):
         drop_categories = X_events[X_events > 1].index
 
         # Delete anomalous disks
-        X = X.drop(X[X['serial_number'].isin(
-            drop_categories)].index).reset_index(drop=True)
+        X = X.drop(X[X['serial_number'].isin(drop_categories)].index).reset_index(drop=True)
 
         return X
 
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X, y)
 
-class DropDuplicates(BaseEstimator, TransformerMixin):
+
+class DropDuplicates():
     """Delete observations happening simultaneously.
     """
 
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+    def transform(self, X:
+                  pd.DataFrame, y=None) -> pd.DataFrame:
         X.drop_duplicates(subset=['serial_number', 'time'], inplace=True)
         return X
 
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X, y)
 
-class TruncRemover(BaseEstimator, TransformerMixin):
+
+class TruncRemover():
     """Class to remove truncated disks.
     """
 
@@ -328,13 +329,16 @@ class TruncRemover(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame, y=None) -> Tuple[pd.DataFrame, List[str]]:
-        trunc_id = X[(X['date'] == self.last_observation) &
-                     (X['failure'] != 1)]['serial_number'].unique()
+        trunc_id = X[(X['date'] == self.last_observation) & (X['failure'] != 1)]['serial_number'].unique()
         X = X[~X['serial_number'].isin(trunc_id)]
         return X, trunc_id
 
+    def fit_transform(self, X: pd.DataFrame, y=None) -> Tuple[pd.DataFrame, List[str]]:
+        self.fit(X, y)
+        return self.transform(X, y)
 
-class FeatureFilter(BaseEstimator, TransformerMixin):
+
+class FeatureFilter():
     """Classs to remove columns with lots of NaN values or explicitly specified.
     """
 
@@ -362,8 +366,12 @@ class FeatureFilter(BaseEstimator, TransformerMixin):
 
         return X
 
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X, y)
 
-class NanImputer(BaseEstimator, TransformerMixin):
+
+class NanImputer():
     def __init__(self, fill_val: Dict | float = 0):
         self.fill_val = fill_val
 
@@ -387,26 +395,32 @@ class NanImputer(BaseEstimator, TransformerMixin):
 
         return X
 
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X, y)
 
-class LabelShifter(BaseEstimator, TransformerMixin):
+
+class LabelShifter():
     def fit_transform(self, X, y=None):
 
         X = X.sort_values(by=['serial_number', 'time'])
-        if OBSERV_MODE == 'chain':
-            X['failure'] = X.groupby('serial_number')['failure'].shift(-1)
-        elif OBSERV_MODE == 'independent':
-            X['failure'] = X.groupby('serial_number')['failure'].transform('max')
-            X.loc[X['time'] == X.groupby('serial_number')['time'].transform('max'), 'failure'] = None
-        else:
-            raise ValueError("Wrong mode")
+        X['failure'] = X.groupby('serial_number')['failure'].shift(-1)
 
         X = X.dropna(subset=["failure"])
-        X = X.drop('time', axis='columns')
+
+        return X
+
+    def transform(self, X, y=None):
+        if 'failure' in X.columns:
+            X = X.sort_values(by=['serial_number', 'time'])
+            X['failure'] = X.groupby('serial_number')['failure'].shift(-1)
+
+            X = X.dropna(subset=["failure"])
 
         return X
 
 
-class CategoricalEncoder(BaseEstimator, TransformerMixin):
+class CategoricalEncoder():
     """Class that encodes categorical columns.
 
         Target encoder for model and One-hot encoder for season.
@@ -437,24 +451,24 @@ class CategoricalEncoder(BaseEstimator, TransformerMixin):
 
         return self
 
-    # def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrames:
+        # def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrames:
 
-    #     # New categories in the test data are replaced with UNKNOWN
-    #     X['model'] = np.where(
-    #         X['model'].isin(self.model_categories),
-    #         X['model'],
-    #         'UNKNOWN'
-    #     )
+        #     # New categories in the test data are replaced with UNKNOWN
+        #     X['model'] = np.where(
+        #         X['model'].isin(self.model_categories),
+        #         X['model'],
+        #         'UNKNOWN'
+        #     )
 
-    #     model_enc = self.target_enc.transform(X[['model']])
-    #     season_enc = self.ohe.transform(X[['season']])
+        #     model_enc = self.target_enc.transform(X[['model']])
+        #     season_enc = self.ohe.transform(X[['season']])
 
-    #     model_enc = np.filna(model_enc, self.global_mean)
+        #     model_enc = np.filna(model_enc, self.global_mean)
 
-    #     X.drop(['model', 'season'], axis=1, inplace=True)
-    #     X = np.hstack([X, model_enc, season_enc])
+        #     X.drop(['model', 'season'], axis=1, inplace=True)
+        #     X = np.hstack([X, model_enc, season_enc])
 
-    #     return X
+        #     return X
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         # Change new categories in the test data with UNKNOWN
@@ -481,6 +495,10 @@ class CategoricalEncoder(BaseEstimator, TransformerMixin):
 
         return pd.DataFrame(combined, columns=new_columns, index=X.index)
 
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X, y)
+
 
 class RandomSampler():
     def __init__(self, n_samples: int = TRAIN_SAMPLES):
@@ -488,7 +506,7 @@ class RandomSampler():
 
     def fit_transform(self, X, y=None):
         self.shuffled_df_idx = (X[~(X['time'] == X.groupby('time')['time'].transform('max')) &
-                                ~(X['time'] == X.groupby('time')['time'].transform('min'))]
+                                  ~(X['time'] == X.groupby('time')['time'].transform('min'))]
                                 .sample(frac=1, random_state=42).
                                 loc[:, ['serial_number']].
                                 groupby('serial_number'))
@@ -496,10 +514,36 @@ class RandomSampler():
         X_sampled = X.loc[self.shuffled_df_idx.head(self.n_samples - 1).index, :]
 
         X_sampled = pd.concat([X_sampled,
-                               X[
-                                   (X['time'] == X.groupby('serial_number')['time'].transform('max')) |
-                                   (X['time'] == X.groupby('serial_number')['time'].transform('min'))]])
+                               X[(X['time'] == X.groupby('serial_number')['time'].transform('max')) |
+                                 (X['time'] == X.groupby('serial_number')['time'].transform('min'))]])
         return X_sampled
 
     def transform(self, X, y=None):
+        return X
+
+
+class TimeLabeler():
+    def __init__(self):
+        self.event_times = pd.Series()
+
+    def fit_transform(self, X, y=None):
+        event_times = pd.Series()
+        new_event_times = X.groupby('serial_number')['time'].max()
+
+        new_disks = list(set(new_event_times.index).difference(self.event_times.index))
+        self.event_times = pd.concat([event_times, new_event_times[new_disks]])
+        self.event_times = self.event_times.combine(new_event_times, max, fill_value=0)
+
+        X['max_lifetime'] = self.event_times
+        return X
+
+    def transform(self, X, y=None):
+        event_times = pd.Series()
+        new_event_times = X.groupby('serial_number')['time'].max()
+
+        new_disks = list(set(new_event_times.index).difference(self.event_times.index))
+        self.event_times = pd.concat([event_times, new_event_times[new_disks]])
+        self.event_times = self.event_times.combine(new_event_times, max, fill_value=0)
+
+        X['max_lifetime'] = self.event_times
         return X

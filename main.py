@@ -7,7 +7,7 @@ from datetime import datetime
 from disk_analyzer.controller import Controller
 from disk_analyzer.view import Viewer
 from disk_analyzer.utils.constants import BATCHSIZE, COLLECTOR_CFG, STORAGE_PATH
-from disk_analyzer.utils.constants import STATIC_STATS, DYNAMIC_STATS, STATIC_STATS_DESCRIPTION, DYNAMIC_STATS_DESCRIPTION
+from disk_analyzer.utils.constants import STATIC_STATS, DYNAMIC_STATS, STATIC_STATS_DESCRIPTION, DYNAMIC_STATS_DESCRIPTION, MODELS_VAULT, DEFAULT_MODEL_PATH
 
 
 data_collect_parser = argparse.ArgumentParser()
@@ -68,6 +68,31 @@ data_stats_parser.add_argument(
     type=str,
     default='daily',
     dest='freq'
+)
+
+save_model_parser = argparse.ArgumentParser()
+save_model_parser.add_argument(
+    '-p',
+    '--path',
+    type=str,
+    default=MODELS_VAULT,
+    dest='p'
+)
+save_model_parser.add_argument(
+    '-n',
+    '--name',
+    type=str,
+    default='default.pkl',
+    dest='n'
+)
+
+load_model_parser = argparse.ArgumentParser()
+load_model_parser.add_argument(
+    '-p',
+    '--path',
+    type=str,
+    default=DEFAULT_MODEL_PATH,
+    dest='p'
 )
 
 
@@ -146,46 +171,12 @@ class RelAnalyzer(cmd.Cmd):
             print(
                 f'Batchsize succesfully changed to {self.controller.batchsize}')
 
-    def do_set_mode(self, args):
-        """
-        Changes the mode of analyzer to date or weekly.
-        Default is date.
-        This mode defines whether data to work with is determined with date or batch number.
-
-        Command-line arguments:
-        args: mode (str)
-        """
-        args_split = args.split()
-        if len(args_split) != 1:
-            print('Incorrect input!')
-        else:
-            if args_split[0] in ['date', 'batch']:
-                self.mode = args.split()[0]
-                self.controller.set_mode(self.mode)
-            else:
-                print('Incorrect value for mode!')
-
     def do_show_params(self, args):
         """Shows parameters of the data slice
         """
         print(f'Mode: {self.mode}')
         print(f'Start index: {self.start_idx}')
         print(f'End index: {self.end_idx}')
-
-    def do_set_borders(self, args):
-        """
-        Set data borders. Always accepts two arguments.
-        First argument is the start index, second is the end index.
-        If mode is daily, borders are in format YYYY-MM-DD. If batch, it's an integer.
-        After applying this command, all the work will be done with data in start_idx <= date/batch <= end_idx.
-        """
-        args_split = args.split()
-        if len(args_split) != 2:
-            print('Incorrect number of arguments!')
-        else:
-            self.start_idx = args_split[0]
-            self.end_idx = args_split[1]
-            controller.set_borders(args_split[0], args_split[1])
 
     def do_help_data_stats(self, args):
         """Shows help about each data statistics
@@ -251,6 +242,22 @@ class RelAnalyzer(cmd.Cmd):
         """
         # TODO: Add arguments
         self.controller.preprocess_data()
+
+    def do_save_model(self, args):
+        """Save model
+            Accepts path to the directory with models vault.
+        """
+
+        args_parsed = save_model_parser.parse_args(shlex.split(args))
+        self.controller.save_model(path=args_parsed.p, name=args_parsed.n)
+
+    def do_load_model(self, args):
+        """Load model
+            Accepts path to the model pickle file
+        """
+
+        args_parsed = load_model_parser.parse_args(shlex.split(args))
+        self.controller.load_model(model_path=args_parsed.p)
 
     def do_exit(self, args):
         return True

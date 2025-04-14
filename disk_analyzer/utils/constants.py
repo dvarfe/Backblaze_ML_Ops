@@ -1,7 +1,8 @@
+from typing import Union
+import os
+
 from sklearn.linear_model import LogisticRegression  # type: ignore
 from sklearn.svm import SVC  # type: ignore
-from typing import Union
-import sys
 from sklearn.linear_model import SGDClassifier  # type: ignore
 
 # Data Collector constants
@@ -82,6 +83,9 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_255_normalized']
 
 # Training constants
-OBSERV_MODE = 'independent'
 EPOCHS = 5
 TRAIN_BATCHSIZE = 32
+
+# Model vault
+MODELS_VAULT = 'Models'
+DEFAULT_MODEL_PATH = os.path.join(MODELS_VAULT, 'default.pkl')
