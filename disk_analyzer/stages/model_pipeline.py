@@ -5,6 +5,7 @@ import pickle
 
 import pandas as pd
 from torch.utils.data import DataLoader
+from lifelines.utils import concordance_index  # type: ignore
 
 from disk_analyzer.utils.constants import MODEL_TYPES, PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE
 from disk_analyzer.stages.data_preprocessor import TrainTestSplitter, DataPreprocessor
@@ -124,28 +125,42 @@ class ModelPipeline:
 
         self._model.fit(dl)
 
-    def predict(self, paths: List[str]):
+    def predict(self, paths: List[str], mode: str = 'score'):
         """Return predictions
         """
 
         if self._model is None:
             raise ValueError("Model not fitted")
 
-        ds = DiskDataset('test', paths)
+        ds = DiskDataset(mode, paths)
 
         dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
 
         return self._model.predict(dl)
 
-    def predict_proba(self, paths: List[str]):
+    def predict_proba(self, paths: List[str], mode: str = 'score'):
         """Return predictions
         """
 
         if self._model is None:
             raise ValueError("Model not fitted")
+        if mode == 'score':
+            ds = DiskDataset(mode, paths)
 
-        ds = DiskDataset('test', paths)
+            dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
 
-        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+            return self._model.predict_proba(dl)
+        elif mode == 'infer':
+            ds = DiskDataset(mode, paths)
 
-        return self._model.predict_proba(dl)
+            dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+
+            return self._model.predict_proba(dl)
+
+    def get_concordance(self, path, times):
+        # TODO: вообще всё тут переделать, просто я хочу спать, но надо хоть что-то сделать
+
+        serial_numbers, times, hazards = self.predict_proba([path])
+        test_df = pd.read_csv(path)
+        event_times = test_df['max_lifetime'] - test_df['time']
+        print(f'{concordance_index(event_times, -hazards)}')

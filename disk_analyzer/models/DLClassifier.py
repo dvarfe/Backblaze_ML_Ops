@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
 
-from disk_analyzer.utils.constants import EPOCHS
+from disk_analyzer.utils.constants import EPOCHS, TIMES
 
 
 class ClassifierArchitecture(nn.Module):
@@ -43,9 +43,9 @@ class DLClassifier:
         self._model.train()
         for epoch in range(epochs):
             total_loss = 0
-            for _, _, X, y in dataloader:
+            for _, _, X, y, _ in dataloader:
                 X = X.to(self.device).float()
-                y = y.to(self.device).float().unsqueeze(1)
+                y = y.squeeze().to(self.device).float().unsqueeze(1)
 
                 self.optimizer.zero_grad()
                 outputs = self._model(X)
@@ -58,38 +58,47 @@ class DLClassifier:
 
         self.is_fitted = True
 
-    def predict_proba(self, dataloader: DataLoader) -> Tuple[List[str], List[int], np.ndarray]:
-        """Predict probabilities
+    def predict(self, dataloader: DataLoader) -> pd.DataFrame:
+        """Get survival function
 
         Args:
             dataloader (DataLoader): Dataloader with data
 
         Returns:
-            np.ndarray: Probabilities for each instance
+            pd.DataFrame: DataFrame with survival function for each observation
         """
+
         self._model.eval()
-        probs = []
-        serial_numbers = []
-        times = []
+        rows = []
+
         with torch.no_grad():
-            for serial_number, time, X, _ in dataloader:
+            for serial_numbers, time, X, y, real_durations in dataloader:
                 X = X.to(self.device).float()
-                outputs = self._model(X)
-                serial_numbers.extend(serial_number)
-                times.extend(time)
-                probs.extend(outputs.squeeze().cpu().numpy())
+                hazards = self._model(X).squeeze().cpu().numpy()
 
-        return serial_numbers, times, np.array(probs)
+                df_batch = pd.DataFrame({
+                    'serial_number': np.array(serial_numbers).flatten(),
+                    'time': np.array(time).flatten(),
+                    'pred': hazards.flatten()
+                })
 
-    def predict(self, dataloader: DataLoader, threshold: float = 0.5) -> Tuple[List[str], List[int], np.ndarray]:
-        """Return predictions based on the threshold
+                df_batch['cum_hazard'] = df_batch.groupby(['serial_number', 'time'])['pred'].cumsum()
+                df_batch['survival_f'] = np.exp(-df_batch['cum_hazard'])
 
-        Args:
-            dataloader (DataLoader): Dataloader with data
-            threshold (float, optional): Thereshold for prediction. Defaults to 0.5.
+                # Each group represents one prediction
+                grouped = df_batch.groupby(['serial_number', 'time'])
 
-        Returns:
-            np.ndarray: predictions
-        """
-        serial_numbers, times, probs = self.predict_proba(dataloader)
-        return serial_numbers, times, (probs >= threshold).astype(int)
+                for (serial, t), group in grouped:
+                    surv_values = group['survival_f'].to_numpy()
+                    row = {
+                        'serial_number': serial,
+                        'time': t,
+                        **dict(zip(dataloader.dataset.times, surv_values))
+                    }
+                    rows.append(row)
+
+        df_surv = pd.DataFrame(rows)
+        columns_order = ['serial_number', 'time'] + list(dataloader.dataset.times)
+        df_surv = df_surv[columns_order]
+
+        return df_surv

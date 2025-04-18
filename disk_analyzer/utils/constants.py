@@ -1,9 +1,8 @@
 from typing import Union
 import os
 
-from sklearn.linear_model import LogisticRegression  # type: ignore
-from sklearn.svm import SVC  # type: ignore
 from sklearn.linear_model import SGDClassifier  # type: ignore
+import numpy as np
 
 # Data Collector constants
 BATCHSIZE = 500_000
@@ -66,7 +65,7 @@ MODEL_TYPES = Union[SGDClassifier]
 # Data Preprocessor constants
 PREPROCESSOR_STORAGE = './Data/preprocessed'
 TEST_SIZE = 0.2
-TRAIN_SAMPLES = 50
+TRAIN_SAMPLES = 10
 FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_normalized',
                       'smart_4_normalized', 'smart_5_normalized', 'smart_7_normalized',
                       'smart_8_normalized', 'smart_9_normalized', 'smart_10_normalized',
@@ -83,8 +82,11 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_255_normalized']
 
 # Training constants
-EPOCHS = 5
+EPOCHS = 1
 TRAIN_BATCHSIZE = 32
+
+# Scoring constants
+TIMES = np.arange(1, 400)
 
 # Model vault
 MODELS_VAULT = 'Models'

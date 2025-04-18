@@ -414,9 +414,8 @@ class LabelShifter():
         if 'failure' in X.columns:
             X = X.sort_values(by=['serial_number', 'time'])
             X['failure'] = X.groupby('serial_number')['failure'].shift(-1)
-
             X = X.dropna(subset=["failure"])
-
+            X['failure'] = X.groupby('serial_number')['failure'].transform('max')
         return X
 
 
@@ -450,25 +449,6 @@ class CategoricalEncoder():
         self.target_enc.fit(X[['model']], y)
 
         return self
-
-        # def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrames:
-
-        #     # New categories in the test data are replaced with UNKNOWN
-        #     X['model'] = np.where(
-        #         X['model'].isin(self.model_categories),
-        #         X['model'],
-        #         'UNKNOWN'
-        #     )
-
-        #     model_enc = self.target_enc.transform(X[['model']])
-        #     season_enc = self.ohe.transform(X[['season']])
-
-        #     model_enc = np.filna(model_enc, self.global_mean)
-
-        #     X.drop(['model', 'season'], axis=1, inplace=True)
-        #     X = np.hstack([X, model_enc, season_enc])
-
-        #     return X
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         # Change new categories in the test data with UNKNOWN
@@ -505,8 +485,8 @@ class RandomSampler():
         self.n_samples = n_samples
 
     def fit_transform(self, X, y=None):
-        self.shuffled_df_idx = (X[~(X['time'] == X.groupby('time')['time'].transform('max')) &
-                                  ~(X['time'] == X.groupby('time')['time'].transform('min'))]
+        self.shuffled_df_idx = (X[~(X['time'] == X.groupby('serial_number')['time'].transform('max')) &
+                                  ~(X['time'] == X.groupby('serial_number')['time'].transform('min'))]
                                 .sample(frac=1, random_state=42).
                                 loc[:, ['serial_number']].
                                 groupby('serial_number'))
@@ -534,16 +514,26 @@ class TimeLabeler():
         self.event_times = pd.concat([event_times, new_event_times[new_disks]])
         self.event_times = self.event_times.combine(new_event_times, max, fill_value=0)
 
-        X['max_lifetime'] = self.event_times
+        X['max_lifetime'] = X['serial_number'].map(self.event_times)
         return X
 
     def transform(self, X, y=None):
-        event_times = pd.Series()
-        new_event_times = X.groupby('serial_number')['time'].max()
+        if 'failure' in X.columns:
+            event_times = pd.Series()
+            new_event_times = X.groupby('serial_number')['time'].max()
 
-        new_disks = list(set(new_event_times.index).difference(self.event_times.index))
-        self.event_times = pd.concat([event_times, new_event_times[new_disks]])
-        self.event_times = self.event_times.combine(new_event_times, max, fill_value=0)
+            new_disks = list(set(new_event_times.index).difference(self.event_times.index))
+            self.event_times = pd.concat([event_times, new_event_times[new_disks]])
+            self.event_times = self.event_times.combine(new_event_times, max, fill_value=0)
 
-        X['max_lifetime'] = self.event_times
+            X['max_lifetime'] = X['serial_number'].map(self.event_times)
+
+            # max_events = pd.Series()
+            # new_max_events = X.groupby('serial_number')['failure'].max()
+
+            # self.max_events = pd.concat([max_events, new_max_events[new_disks]])
+            # self.max_events = self.max_events.combine(new_max_events, max, fill_value=0)
+
+            # X['max_event'] = X['serial_number'].map(self.max_events)
+
         return X
