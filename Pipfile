@@ -8,6 +8,7 @@ pandas = "*"
 matplotlib = "*"
 torch = "*"
 scikit-learn = "*"
+survivors = "*"
 
 [dev-packages]
 sphinx = "*"
