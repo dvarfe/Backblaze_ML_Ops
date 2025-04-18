@@ -4,6 +4,8 @@ import pandas as pd
 from torch.utils.data import DataLoader
 import numpy as np
 
+from disk_analyzer.utils.constants import TIMES
+
 
 class SKLClassifier():
     """Wrapper class for sklearn models that implement partial_fit method
@@ -33,39 +35,34 @@ class SKLClassifier():
             else:
                 self._model.partial_fit(X_np, y_np)
 
-    def predict(self, dataloader: DataLoader) -> pd.DataFrame:
+    def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> pd.DataFrame:
+        """Get survival function
+
+        Args:
+            dataloader (DataLoader): Dataloader with data
+
+        Returns:
+            pd.DataFrame: DataFrame with survival function for each observation
         """
-        Predict class labels using the trained model.
-        """
+
         rows = []
 
         for serial_numbers, time, X, y, real_durations in dataloader:
-            X = X.numpy().reshape(-1, X.shape[-1])
-            hazards = self._model.predict_proba(X)[:, 1]
-
-            df_batch = pd.DataFrame({
-                'serial_number': np.array(serial_numbers).flatten(),
-                'time': np.array(time).flatten(),
-                'pred': hazards.flatten()
-            })
-
-            df_batch['cum_hazard'] = df_batch.groupby(['serial_number', 'time'])['pred'].cumsum()
-            df_batch['survival_f'] = np.exp(-df_batch['cum_hazard'])
-
-            # Each group represents one prediction
-            grouped = df_batch.groupby(['serial_number', 'time'])
-
-            for (serial, t), group in grouped:
-                surv_values = group['survival_f'].to_numpy()
+            X = X.cpu().numpy()
+            for cur_serial_number, cur_time, line, cur_y, real_duration in zip(serial_numbers, time, X, y, real_durations):
+                data_extended = np.array([list(line) + [time] for time in times])
+                hazards = self._model.predict_proba(data_extended)[:, 1]
+                cum_hazards = hazards.cumsum()
+                surv_f = np.exp(-cum_hazards)
                 row = {
-                    'serial_number': serial,
-                    'time': t,
-                    **dict(zip(dataloader.dataset.times, surv_values))
+                    'serial_number': cur_serial_number,
+                    'time': int(cur_time),
+                    **dict(zip(times, surv_f))
                 }
                 rows.append(row)
 
         df_surv = pd.DataFrame(rows)
-        columns_order = ['serial_number', 'time'] + list(dataloader.dataset.times)
+        columns_order = ['serial_number', 'time'] + list(times)
         df_surv = df_surv[columns_order]
 
         return df_surv

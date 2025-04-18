@@ -58,7 +58,7 @@ class DLClassifier:
 
         self.is_fitted = True
 
-    def predict(self, dataloader: DataLoader) -> pd.DataFrame:
+    def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> pd.DataFrame:
         """Get survival function
 
         Args:
@@ -73,32 +73,21 @@ class DLClassifier:
 
         with torch.no_grad():
             for serial_numbers, time, X, y, real_durations in dataloader:
-                X = X.to(self.device).float()
-                hazards = self._model(X).squeeze().cpu().numpy()
-
-                df_batch = pd.DataFrame({
-                    'serial_number': np.array(serial_numbers).flatten(),
-                    'time': np.array(time).flatten(),
-                    'pred': hazards.flatten()
-                })
-
-                df_batch['cum_hazard'] = df_batch.groupby(['serial_number', 'time'])['pred'].cumsum()
-                df_batch['survival_f'] = np.exp(-df_batch['cum_hazard'])
-
-                # Each group represents one prediction
-                grouped = df_batch.groupby(['serial_number', 'time'])
-
-                for (serial, t), group in grouped:
-                    surv_values = group['survival_f'].to_numpy()
+                X = X.cpu().numpy()
+                for cur_serial_number, cur_time, line, cur_y, real_duration in zip(serial_numbers, time, X, y, real_durations):
+                    data_extended = torch.Tensor([list(line) + [time] for time in times]).to(self.device)
+                    hazards = self._model(data_extended).squeeze().cpu().numpy()
+                    cum_hazards = hazards.cumsum()
+                    surv_f = np.exp(-cum_hazards)
                     row = {
-                        'serial_number': serial,
-                        'time': t,
-                        **dict(zip(dataloader.dataset.times, surv_values))
+                        'serial_number': cur_serial_number,
+                        'time': int(cur_time.cpu()),
+                        **dict(zip(times, surv_f))
                     }
                     rows.append(row)
 
-        df_surv = pd.DataFrame(rows)
-        columns_order = ['serial_number', 'time'] + list(dataloader.dataset.times)
-        df_surv = df_surv[columns_order]
+            df_surv = pd.DataFrame(rows)
+            columns_order = ['serial_number', 'time'] + list(times)
+            df_surv = df_surv[columns_order]
 
         return df_surv
