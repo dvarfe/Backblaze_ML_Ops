@@ -119,7 +119,7 @@ class DiskDataset(IterableDataset):
         self._file_paths = file_paths
         self.times = times
 
-    def __iter__(self) -> Generator[Tuple[str, int, torch.Tensor, int, int]]:
+    def __iter__(self) -> Generator[Tuple[str, int, torch.Tensor, bool, int], None, None]:
         # Shuffle files at the start of each epoch
         worker_info = get_worker_info()
         file_paths = self._split_files_for_workers(worker_info)
@@ -138,40 +138,39 @@ class DiskDataset(IterableDataset):
                     label_idx = header.index('failure')
                     event_time_idx = header.index('max_lifetime')
                 for line in f:
-                    line = line.strip()
+                    data_line = line.strip().split(',')
                     if self._mode == 'train':
-                        yield self._parse_train_line(line, label_idx, id_idx, time_idx, event_time_idx)
+                        yield self._parse_train_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
                     elif self._mode == 'score':
-                        yield self._parse_score_line(line, label_idx, id_idx, time_idx, event_time_idx)
+                        # We shouldn't use last observation in chain when scoring
+                        if data_line[event_time_idx] == data_line[time_idx]:
+                            continue
+                        yield self._parse_score_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
                     elif self._mode == 'infer':
-                        yield self._parse_infer_line(line, id_idx, time_idx)
+                        yield self._parse_infer_line(data_line, id_idx, time_idx)
 
-    def _parse_train_line(self, line: str, label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, int, int]:
-
+    def _parse_train_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
         # Parse the line and convert it to a tensor
-        data_line = line.strip().split(',')
+
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
         cur_time = int(data_line[time_idx])
         event_time = int(data_line[event_time_idx])
         time_to_event = event_time - cur_time
         data_vec += [time_to_event]
-        y = int(data_line[label_idx])
+        y = bool(data_line[label_idx])
         return data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event
 
-    def _parse_score_line(self, line: str, label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, int, int]:
-        data_line = line.strip().split(',')
+    def _parse_score_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
-
-        y = int(data_line[label_idx])
+        y = bool(data_line[label_idx])
         lifetime = int(data_line[event_time_idx])
 
         return data_line[id_idx], int(data_line[time_idx]), torch.Tensor(data_vec), y, lifetime
 
-    def _parse_infer_line(self, line: str, id_idx: int, time_idx: int) -> Tuple[str, int, torch.Tensor, int, int]:
-        data_line = line.strip().split(',')
+    def _parse_infer_line(self, data_line: List[str], id_idx: int, time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx]]
 
-        return data_line[id_idx], int(data_line[time_idx]), torch.Tensor(data_vec), -1, -1
+        return data_line[id_idx], int(data_line[time_idx]), torch.Tensor(data_vec), 0, -1
 
     def _split_files_for_workers(self, worker_info):
         # Split files across workers to avoid duplicates

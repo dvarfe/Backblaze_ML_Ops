@@ -7,8 +7,9 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from lifelines.utils import concordance_index  # type: ignore
 
-from disk_analyzer.utils.constants import MODEL_TYPES, PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE
+from disk_analyzer.utils.constants import MODEL_TYPES, PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES
 from disk_analyzer.stages.data_preprocessor import TrainTestSplitter, DataPreprocessor
+from disk_analyzer.stages.model_scoring import ModelScorer
 from disk_analyzer.models.SKLearnClassifier import SKLClassifier
 from disk_analyzer.models.DLClassifier import DLClassifier
 from disk_analyzer.models.Dataset import DiskDataset
@@ -26,6 +27,7 @@ class ModelPipeline:
                  data_paths: Optional[List[str]] = None,
                  train_test_splitter: Optional[TrainTestSplitter] = None,
                  data_preprocessor: Optional[DataPreprocessor] = None,
+                 model_scorer: Optional[ModelScorer] = None,
                  rm_truncated_from_test: bool = True,
                  batchsize: int = BATCHSIZE,
                  prep_storage_path: str = PREPROCESSOR_STORAGE,
@@ -36,6 +38,7 @@ class ModelPipeline:
         self.data_paths = data_paths
         self.__train_test_splitter = train_test_splitter or TrainTestSplitter()
         self.__data_preprocessor = data_preprocessor or DataPreprocessor(storage_paths=data_paths)
+        self._model_scorer = model_scorer or ModelScorer()
         self.__rm_truncated_from_test = rm_truncated_from_test
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
@@ -125,7 +128,7 @@ class ModelPipeline:
 
         self._model.fit(dl)
 
-    def predict(self, paths: List[str], mode: str = 'score'):
+    def predict(self, paths: List[str], mode: str = 'score', times=TIMES):
         """Return predictions
         """
 
@@ -136,31 +139,19 @@ class ModelPipeline:
 
         dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
 
-        return self._model.predict(dl)
+        return self._model.predict(dl, times)
 
-    def predict_proba(self, paths: List[str], mode: str = 'score'):
+    def score_model(self, paths: List[str], times=TIMES):
         """Return predictions
         """
 
         if self._model is None:
             raise ValueError("Model not fitted")
-        if mode == 'score':
-            ds = DiskDataset(mode, paths)
 
-            dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+        ds = DiskDataset('score', paths)
 
-            return self._model.predict_proba(dl)
-        elif mode == 'infer':
-            ds = DiskDataset(mode, paths)
+        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
 
-            dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+        df_pred, df_gt = self._model.predict(dl, times)
 
-            return self._model.predict_proba(dl)
-
-    def get_concordance(self, path, times):
-        # TODO: вообще всё тут переделать, просто я хочу спать, но надо хоть что-то сделать
-
-        serial_numbers, times, hazards = self.predict_proba([path])
-        test_df = pd.read_csv(path)
-        event_times = test_df['max_lifetime'] - test_df['time']
-        print(f'{concordance_index(event_times, -hazards)}')
+        return self._model_scorer.get_ci_and_ibs(self._model, df_pred, df_gt, times)

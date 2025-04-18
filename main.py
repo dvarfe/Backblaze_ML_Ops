@@ -259,6 +259,11 @@ class RelAnalyzer(cmd.Cmd):
         args_parsed = load_model_parser.parse_args(shlex.split(args))
         self.controller.load_model(model_path=args_parsed.p)
 
+    def do_score_model(self, args):
+        args_split = shlex.split(args)
+        path = args_split[0]
+        self.controller.score_model(path)
+
     def do_exit(self, args):
         return True
 

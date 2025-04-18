@@ -35,7 +35,7 @@ class SKLClassifier():
             else:
                 self._model.partial_fit(X_np, y_np)
 
-    def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> pd.DataFrame:
+    def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Get survival function
 
         Args:
@@ -45,11 +45,12 @@ class SKLClassifier():
             pd.DataFrame: DataFrame with survival function for each observation
         """
 
-        rows = []
+        rows_pred = []
+        rows_gt = []
 
-        for serial_numbers, time, X, y, real_durations in dataloader:
+        for serial_numbers, time, X, y, event_times in dataloader:
             X = X.cpu().numpy()
-            for cur_serial_number, cur_time, line, cur_y, real_duration in zip(serial_numbers, time, X, y, real_durations):
+            for cur_serial_number, cur_time, line, cur_y, event_time in zip(serial_numbers, time, X, y, event_times):
                 data_extended = np.array([list(line) + [time] for time in times])
                 hazards = self._model.predict_proba(data_extended)[:, 1]
                 cum_hazards = hazards.cumsum()
@@ -59,10 +60,21 @@ class SKLClassifier():
                     'time': int(cur_time),
                     **dict(zip(times, surv_f))
                 }
-                rows.append(row)
+                rows_pred.append(row)
 
-        df_surv = pd.DataFrame(rows)
+                if event_time != -1:
+                    row_gt = {
+                        'serial_number': cur_serial_number,
+                        'time': int(cur_time.cpu()),
+                        'duration': int((event_time - cur_time).cpu()),
+                        'failure': bool(cur_y.cpu()),
+                    }
+                    rows_gt.append(row_gt)
+
+        df_surv = pd.DataFrame(rows_pred)
         columns_order = ['serial_number', 'time'] + list(times)
         df_surv = df_surv[columns_order]
 
-        return df_surv
+        df_gt = pd.DataFrame(rows_gt)
+
+        return df_surv, df_gt

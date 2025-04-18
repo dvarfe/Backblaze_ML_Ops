@@ -9,7 +9,7 @@ from sklearn.linear_model import SGDClassifier  # type: ignore
 from disk_analyzer.stages.data_collector import DataCollector
 from disk_analyzer.stages.data_stats import DataStats
 from disk_analyzer.stages.model_pipeline import ModelPipeline
-from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH
+from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH, TIMES
 from disk_analyzer.models.DLClassifier import DLClassifier
 
 
@@ -131,24 +131,14 @@ class Controller():
             path (str): Input file
         """
         predictions_path = 'Predictions/'
-        df_pred = self.model_pipeline.predict([path])
+        df_pred, _ = self.model_pipeline.predict([path])
         if not os.path.exists(predictions_path):
             os.mkdir(predictions_path)
         df_pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
         print(f'Predictions saved to {predictions_path}/prediction.csv')
 
-    def predict_proba(self, path: str):
-        """Model inference on a single file. The results are saved in the 'Predictions' folder.
-            Returns probabilities of event for each event in the input file.
-        Args:
-            path (str): Input file
-        """
-        predictions_path = 'Predictions/'
-        pred = self.model_pipeline.predict_proba([path])
-        if not os.path.exists(predictions_path):
-            os.mkdir(predictions_path)
-        pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
-        print(f'Predictions saved to {predictions_path}/prediction.csv')
+    def score_model(self, path: str, times=TIMES):
+        print(self.model_pipeline.score_model([path], times))
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open data from the given paths.
