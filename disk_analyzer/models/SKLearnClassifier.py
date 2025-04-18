@@ -78,3 +78,12 @@ class SKLClassifier():
         df_gt = pd.DataFrame(rows_gt)
 
         return df_surv, df_gt
+
+    def get_expected_time(self, dataloader, times=TIMES):
+        df_survival, df_gt = self.predict(dataloader, times=times)
+        return self.get_expected_time_by_predictions(df_survival, times), df_gt
+
+    def get_expected_time_by_predictions(self, X_pred, times):
+        X = X_pred
+        survival_vec = X.drop(['serial_number', 'time'], axis='columns').values
+        return np.trapezoid(y=survival_vec, x=times)
