@@ -212,7 +212,7 @@ class RelAnalyzer(cmd.Cmd):
         """Fits model
 
         Args:
-            args (): logistic_regression/NN/robust_regression 
+            args (): logistic_regression/NN/
         """
         args_split = shlex.split(args)
         if len(args_split) == 1:

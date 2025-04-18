@@ -116,11 +116,8 @@ class Controller():
         elif model_name == 'NN':
             model = DLClassifier(12)  # TODO: fix constant
             self.model_pipeline.set_model(model, interface='torch')
-        elif model_name == 'robust_regression':
-            model = SGDClassifier(loss='modified_huber')
-            self.model_pipeline.set_model(model)
         else:
-            raise ValueError("Model name must be either 'logistic_regression', 'NN' or 'robust_regression'.")
+            raise ValueError("Model name must be either 'logistic_regression' or 'NN'")
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
         self.model_pipeline.fit(batches)
 
