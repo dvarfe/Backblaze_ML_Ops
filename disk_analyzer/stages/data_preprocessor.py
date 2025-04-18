@@ -407,6 +407,7 @@ class LabelShifter():
         X['failure'] = X.groupby('serial_number')['failure'].shift(-1)
 
         X = X.dropna(subset=["failure"])
+        X['failure'] = X.groupby('serial_number')['failure'].transform('max')
 
         return X
 
