@@ -116,11 +116,11 @@ class Controller():
         elif model_name == 'NN':
             model = DLClassifier(12)  # TODO: fix constant
             self.model_pipeline.set_model(model, interface='torch')
-        elif model_name == 'linear_svm':
-            model = SGDClassifier(loss='hinge')
+        elif model_name == 'robust_regression':
+            model = SGDClassifier(loss='modified_huber')
             self.model_pipeline.set_model(model)
         else:
-            raise ValueError("Model name must be either 'logistic_regression' or 'NN'.")
+            raise ValueError("Model name must be either 'logistic_regression', 'NN' or 'robust_regression'.")
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
         self.model_pipeline.fit(batches)
 
@@ -131,12 +131,9 @@ class Controller():
             path (str): Input file
         """
         predictions_path = 'Predictions/'
-        serials, times, pred = self.model_pipeline.predict([path])
+        df_pred = self.model_pipeline.predict([path])
         if not os.path.exists(predictions_path):
             os.mkdir(predictions_path)
-        df_pred = pd.DataFrame(serials)
-        df_pred['time'] = times
-        df_pred['pred'] = pred
         df_pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
         print(f'Predictions saved to {predictions_path}/prediction.csv')
 
