@@ -9,7 +9,7 @@ from sklearn.linear_model import SGDClassifier  # type: ignore
 from disk_analyzer.stages.data_collector import DataCollector
 from disk_analyzer.stages.data_stats import DataStats
 from disk_analyzer.stages.model_pipeline import ModelPipeline
-from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH, TIMES
+from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH, TIMES, FEATURES_NUM
 from disk_analyzer.models.DLClassifier import DLClassifier
 
 
@@ -114,7 +114,7 @@ class Controller():
             model = SGDClassifier(loss='log_loss')
             self.model_pipeline.set_model(model, interface='sklearn')
         elif model_name == 'NN':
-            model = DLClassifier(12)  # TODO: fix constant
+            model = DLClassifier(FEATURES_NUM)  # TODO: fix constant
             self.model_pipeline.set_model(model, interface='torch')
         else:
             raise ValueError("Model name must be either 'logistic_regression' or 'NN'")
