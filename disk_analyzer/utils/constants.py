@@ -84,7 +84,7 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
 # Training constants
 EPOCHS = 1
 TRAIN_BATCHSIZE = 32
-FEATURES_NUM = 13
+FEATURES_NUM = 11
 
 # Scoring constants
 TIMES = np.arange(1, 400)

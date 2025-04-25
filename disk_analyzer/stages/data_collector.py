@@ -1,10 +1,11 @@
 import os
-import sys
 import json
-import pandas as pd
 import glob as glob
-import shutil
 from typing import List, Optional
+
+import pandas as pd
+from tqdm import tqdm
+
 from disk_analyzer.utils.constants import BATCHSIZE
 
 
@@ -42,7 +43,7 @@ class DataCollector:
         if self.__storage_path in self.__paths:
             raise ValueError('Storage path must not be in paths')
 
-    def __list_csv(self, paths: List[str]) -> List[str]:
+    def _list_csv(self, paths: List[str]) -> List[str]:
         """Returns a list of csv files in the paths
 
         Args:
@@ -70,15 +71,14 @@ class DataCollector:
         df_contents = pd.DataFrame(
             columns=['batchnum', 'min_date', 'max_date'])
 
-        old_files = self.__list_csv([self.__storage_path])
+        old_files = self._list_csv([self.__storage_path])
         old_files.sort()
 
         df_size = 0
         df_list = []
         batchnum = 0
 
-        for idx, file in enumerate(old_files):
-            print(f'Processing file {idx}/{len(old_files)}')
+        for idx, file in tqdm(enumerate(old_files)):
 
             df = pd.read_csv(file)
             df['date'] = df['date'].astype('datetime64[ns]')
@@ -116,7 +116,7 @@ class DataCollector:
         Creates two categorial features: 'brand' and 'model'.
         '''
         print('Begin preparation')
-        files = self.__list_csv(self.__paths)
+        files = self._list_csv(self.__paths)
         if not os.path.exists(self.__storage_path):
             os.mkdir(self.__storage_path)
         # TODO: process several files at once
