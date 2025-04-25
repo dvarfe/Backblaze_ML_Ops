@@ -9,6 +9,7 @@ matplotlib = "*"
 torch = "*"
 scikit-learn = "*"
 survivors = "*"
+tqdm = "*"
 
 [dev-packages]
 sphinx = "*"

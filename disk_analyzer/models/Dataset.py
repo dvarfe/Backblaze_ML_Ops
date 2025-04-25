@@ -25,6 +25,16 @@ class DiskDataset(IterableDataset):
         self._file_paths = file_paths
         self.times = times
 
+        self._len = 0
+        for file_path in self._file_paths:
+            with open(file_path, 'r') as f:
+                f.readline()
+                self._len += sum(1 for _ in f)
+
+    def __len__(self):
+        """Returns the total number of observations in the dataset."""
+        return self._len
+
     def __iter__(self) -> Generator[Tuple[str, int, torch.Tensor, bool, int], None, None]:
         # Shuffle files at the start of each epoch
         worker_info = get_worker_info()

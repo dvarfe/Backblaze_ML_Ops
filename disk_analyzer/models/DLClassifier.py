@@ -2,6 +2,7 @@ from typing import Optional, List, Tuple
 
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
@@ -73,7 +74,7 @@ class DLClassifier:
         rows_gt = []
 
         with torch.no_grad():
-            for serial_numbers, time, X, y, real_durations in dataloader:
+            for serial_numbers, time, X, y, real_durations in tqdm(dataloader):
                 X = X.cpu().numpy()
                 for cur_serial_number, cur_time, line, cur_y, event_time in zip(serial_numbers, time, X, y, real_durations):
                     data_extended = torch.Tensor([list(line) + [time] for time in times]).to(self.device)
