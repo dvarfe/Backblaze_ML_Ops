@@ -26,47 +26,6 @@ class Controller():
         self.__is_preprocessed = False
         self.paths = []
 
-    def set_mode(self, mode: str):
-        """Set the mode of the pipeline. Defines the logic by which data to process is determined.
-
-        Args:
-            mode (str): Can be either date or batch. Default is date.
-        """
-        if mode == 'date' or mode == 'batch':
-            if self.mode != mode:
-                self.start_idx = None
-                self.end_idx = None
-            self.mode = mode
-            print(f'Mode succesfully changed to {self.mode}')
-        else:
-            print('Incorrect value for mode!')
-
-    def set_borders(self, start_idx: int | str, end_idx: int | str):
-        if self.mode == 'date':
-            try:
-                if start_idx == '-1':
-                    self.start_idx = None
-                else:
-                    self.start_idx = datetime.strptime(str(start_idx), '%Y-%m-%d')
-                if end_idx == '-1':
-                    self.end_idx = None
-                else:
-                    self.end_idx = datetime.strptime(str(end_idx), '%Y-%m-%d')
-            except:
-                print('Incorrect value for borders!')
-        elif self.mode == 'batch':
-            try:
-                if start_idx == '-1':
-                    self.start_idx = None
-                else:
-                    self.start_idx = int(start_idx)
-                if end_idx == '-1':
-                    self.end_idx = None
-                else:
-                    self.end_idx = int(end_idx)
-            except:
-                print('Incorrect value for borders!')
-
     def collect_data(self, *args, **kwargs):
         """
         Collects data from the given paths and saves it to the given location.
