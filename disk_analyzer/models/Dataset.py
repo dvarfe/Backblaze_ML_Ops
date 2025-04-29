@@ -73,12 +73,12 @@ class DiskDataset(IterableDataset):
         event_time = int(data_line[event_time_idx])
         time_to_event = event_time - cur_time
         data_vec += [time_to_event]
-        y = bool(data_line[label_idx])
+        y = data_line[label_idx] == '1'
         return data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event
 
     def _parse_score_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
-        y = bool(data_line[label_idx])
+        y = data_line[label_idx] == '1'
         lifetime = int(data_line[event_time_idx])
 
         return data_line[id_idx], int(data_line[time_idx]), torch.Tensor(data_vec), y, lifetime

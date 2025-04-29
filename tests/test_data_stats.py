@@ -2,13 +2,8 @@ import unittest
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, Any
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath(".."))
-
-from disk_analyzer.stages.data_stats import DataStats  # NOQA
+from disk_analyzer.stages import DataStats
 
 
 class TestDataStats(unittest.TestCase):

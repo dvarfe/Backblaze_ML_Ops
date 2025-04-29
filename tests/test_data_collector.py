@@ -7,10 +7,7 @@ import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.abspath(".."))
-
-from disk_analyzer.utils.constants import BATCHSIZE  # NOQA
-from disk_analyzer.stages.data_collector import DataCollector  # NOQA
+from disk_analyzer.stages import DataCollector
 
 
 class TestDataCollector(unittest.TestCase):

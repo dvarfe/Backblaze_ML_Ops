@@ -31,6 +31,7 @@ class DLClassifier:
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self._model = ClassifierArchitecture(input_dim, hidden_dim).to(self.device)
         self.criterion = nn.BCELoss()
+        # self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self._model.parameters(), lr=lr)
         self.is_fitted = False
 

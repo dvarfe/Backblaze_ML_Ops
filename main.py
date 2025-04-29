@@ -1,9 +1,6 @@
-import sys
-import os
 import shlex
 import cmd
 import argparse
-from datetime import datetime
 from disk_analyzer.controller import Controller
 from disk_analyzer.view import Viewer
 from disk_analyzer.utils.constants import BATCHSIZE, COLLECTOR_CFG, STORAGE_PATH

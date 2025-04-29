@@ -74,13 +74,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Self</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">OneHotEncoder</span><span class="p">,</span> <span class="n">TargetEncoder</span><span class="p">,</span> <span class="n">StandardScaler</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>  <span class="c1"># type: ignore</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">TEST_SIZE</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">TEST_SIZE</span><span class="p">,</span> <span class="n">FEATURES_TO_REMOVE</span><span class="p">,</span> <span class="n">TRAIN_SAMPLES</span>
 
 
 <div class="viewcode-block" id="TrainTestSplitter">
@@ -188,7 +185,7 @@
         <span class="n">df_previously_truncated</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">train_trunc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_trunc</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">trunc_remover</span> <span class="o">=</span> <span class="n">TruncRemover</span><span class="p">()</span>
-        <span class="n">df_untruncated</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_remover</span><span class="p">()</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">df_previously_truncated</span><span class="p">)</span>
+        <span class="n">df_untruncated</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_remover</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">df_previously_truncated</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df_untruncated</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span></div>
 
 
@@ -255,7 +252,7 @@
 
 <div class="viewcode-block" id="DataPreprocessor">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DataPreprocessor">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">DataPreprocessor</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataPreprocessor</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Train data preprocessor class .</span>
 
 <span class="sd">        Preprocessing steps:</span>
@@ -277,25 +274,32 @@
 <span class="sd">            batchsize(int, optional): Number of observations in each batch. Defaults to BATCHSIZE.</span>
 <span class="sd">            verbose(bool, optional): Whether to print logs. Defaults to True.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_data</span><span class="p">(</span><span class="n">storage_paths</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span> <span class="o">=</span> <span class="n">batchsize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__verbose</span> <span class="o">=</span> <span class="n">verbose</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__normalized_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">feature</span> <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">feature</span><span class="o">.</span><span class="fm">__contains__</span><span class="p">(</span><span class="s1">&#39;normalized&#39;</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_time_transformer</span> <span class="o">=</span> <span class="n">TimeTransformer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_drop_doubles</span> <span class="o">=</span> <span class="n">DropDoubles</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_drop_duplicates</span> <span class="o">=</span> <span class="n">DropDuplicates</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_feature_filter</span> <span class="o">=</span> <span class="n">FeatureFilter</span><span class="p">(</span><span class="n">features_to_remove</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__normalized_features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_feature_filter</span> <span class="o">=</span> <span class="n">FeatureFilter</span><span class="p">(</span><span class="n">features_to_remove</span><span class="o">=</span><span class="n">FEATURES_TO_REMOVE</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_nan_imputer</span> <span class="o">=</span> <span class="n">NanImputer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">categorical_encoder</span> <span class="o">=</span> <span class="n">CategoricalEncoder</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">standard_scaler</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_sampler</span> <span class="o">=</span> <span class="n">RandomSampler</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_shifter</span> <span class="o">=</span> <span class="n">LabelShifter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_labeler</span> <span class="o">=</span> <span class="n">TimeLabeler</span><span class="p">()</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">__preprocessing_pipeline</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;TimeTransformer&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_transformer</span><span class="p">,</span>
                                          <span class="s1">&#39;DropDoubles&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drop_doubles</span><span class="p">,</span>
                                          <span class="s1">&#39;DropDuplicates&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drop_duplicates</span><span class="p">,</span>
                                          <span class="s1">&#39;FeatureFilter&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_filter</span><span class="p">,</span>
                                          <span class="s1">&#39;Nan_imputer&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nan_imputer</span><span class="p">,</span>
                                          <span class="s1">&#39;CategoricalEncoder&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_encoder</span><span class="p">,</span>
-                                         <span class="s1">&#39;StandardScaler&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">standard_scaler</span><span class="p">}</span>
+                                         <span class="s1">&#39;StandardScaler&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">standard_scaler</span><span class="p">,</span>
+                                         <span class="s1">&#39;RandomSampler&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_sampler</span><span class="p">,</span>
+                                         <span class="s1">&#39;LabelShifter&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_shifter</span><span class="p">,</span>
+                                         <span class="s1">&#39;TimeLabeler&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_labeler</span><span class="p">}</span>
 
 <div class="viewcode-block" id="DataPreprocessor.open_data">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DataPreprocessor.open_data">[docs]</a>
@@ -315,7 +319,7 @@
 
 <div class="viewcode-block" id="DataPreprocessor.fit_transform">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DataPreprocessor.fit_transform">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">fit_params</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">transformer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__preprocessing_pipeline</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__verbose</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Fit_tr </span><span class="si">{</span><span class="n">transformer</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -327,19 +331,6 @@
 
         <span class="k">return</span> <span class="n">X</span></div>
 
-
-    <span class="c1"># def fit(self, X, y=None) -&gt; Self:</span>
-    <span class="c1">#     &quot;&quot;&quot;Fit transformers.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-        <span class="c1"># for transformer in self.__preprocessing_pipeline:</span>
-        <span class="c1">#     if self.__verbose:</span>
-        <span class="c1">#         print(f&#39;Fitting {transformer}&#39;)</span>
-        <span class="c1">#     if transformer == &#39;StandardScaler&#39;:</span>
-        <span class="c1">#         num_cols = X.columns.difference([&#39;season&#39;, &#39;model&#39;, &#39;serial_number&#39;, &#39;time&#39;, &#39;date&#39;, &#39;failure&#39;, &#39;time&#39;])</span>
-        <span class="c1">#         self.__preprocessing_pipeline[transformer].fit(X.loc[:, num_cols])</span>
-        <span class="c1">#     else:</span>
-        <span class="c1">#         self.__preprocessing_pipeline[transformer].fit(X)</span>
-        <span class="c1"># return self</span>
 
 <div class="viewcode-block" id="DataPreprocessor.transform">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DataPreprocessor.transform">[docs]</a>
@@ -365,7 +356,7 @@
 
 <div class="viewcode-block" id="TimeTransformer">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeTransformer">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">TimeTransformer</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TimeTransformer</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Change date column to time in days.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;date&#39;</span><span class="p">):</span>
@@ -380,8 +371,6 @@
 <div class="viewcode-block" id="TimeTransformer.fit">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeTransformer.fit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">time_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">min_date</span> <span class="o">=</span> <span class="n">time_df</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
@@ -390,18 +379,28 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[ns]&#39;</span><span class="p">)</span>
 
-        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">])</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_date</span>
-        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)</span>
+                            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="c1"># X.loc[:, self.time_column] = pd.to_datetime(X.loc[:, self.time_column]) - self.min_date</span>
+        <span class="c1"># X.loc[:, &#39;time&#39;] = X.loc[:, self.time_column].dt.days.astype(int)</span>
 
-        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">:</span> <span class="s1">&#39;time&#39;</span><span class="p">})</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># # X = X.rename(columns={self.time_column: &#39;time&#39;})</span>
         <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="TimeTransformer.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeTransformer.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="DropDoubles">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DropDoubles">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">DropDoubles</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DropDoubles</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove disks with more than one event.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -421,17 +420,23 @@
         <span class="n">drop_categories</span> <span class="o">=</span> <span class="n">X_events</span><span class="p">[</span><span class="n">X_events</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
 
         <span class="c1"># Delete anomalous disks</span>
-        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
-            <span class="n">drop_categories</span><span class="p">)]</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">drop_categories</span><span class="p">)]</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="DropDoubles.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DropDoubles.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="DropDuplicates">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DropDuplicates">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">DropDuplicates</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DropDuplicates</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Delete observations happening simultaneously.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -443,16 +448,24 @@
 
 <div class="viewcode-block" id="DropDuplicates.transform">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DropDuplicates.transform">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span>
+                  <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
         <span class="n">X</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="DropDuplicates.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.DropDuplicates.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="TruncRemover">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TruncRemover">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">TruncRemover</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TruncRemover</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class to remove truncated disks.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -466,17 +479,23 @@
 <div class="viewcode-block" id="TruncRemover.transform">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TruncRemover.transform">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-        <span class="n">trunc_id</span> <span class="o">=</span> <span class="n">X</span><span class="p">[(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_observation</span><span class="p">)</span> <span class="o">&amp;</span>
-                     <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)][</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="n">trunc_id</span> <span class="o">=</span> <span class="n">X</span><span class="p">[(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_observation</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)][</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
         <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="o">~</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">trunc_id</span><span class="p">)]</span>
         <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">trunc_id</span></div>
+
+
+<div class="viewcode-block" id="TruncRemover.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TruncRemover.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="FeatureFilter">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.FeatureFilter">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">FeatureFilter</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FeatureFilter</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Classs to remove columns with lots of NaN values or explicitly specified.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -508,13 +527,20 @@
         <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">features_to_remove</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="FeatureFilter.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.FeatureFilter.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="NanImputer">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.NanImputer">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">NanImputer</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NanImputer</span><span class="p">():</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fill_val</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fill_val</span> <span class="o">=</span> <span class="n">fill_val</span>
 
@@ -542,13 +568,49 @@
                 <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="NanImputer.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.NanImputer.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LabelShifter">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.LabelShifter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LabelShifter</span><span class="p">():</span>
+<div class="viewcode-block" id="LabelShifter.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.LabelShifter.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">])</span>
+        <span class="n">X</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">])</span>
+        <span class="n">X</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="LabelShifter.transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.LabelShifter.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;failure&#39;</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">])</span>
+            <span class="n">X</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">])</span>
+            <span class="n">X</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">X</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="CategoricalEncoder">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.CategoricalEncoder">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">CategoricalEncoder</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CategoricalEncoder</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class that encodes categorical columns.</span>
 
 <span class="sd">        Target encoder for model and One-hot encoder for season.</span>
@@ -582,25 +644,6 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
-    <span class="c1"># def transform(self, X: pd.DataFrame, y=None) -&gt; pd.DataFrames:</span>
-
-    <span class="c1">#     # New categories in the test data are replaced with UNKNOWN</span>
-    <span class="c1">#     X[&#39;model&#39;] = np.where(</span>
-    <span class="c1">#         X[&#39;model&#39;].isin(self.model_categories),</span>
-    <span class="c1">#         X[&#39;model&#39;],</span>
-    <span class="c1">#         &#39;UNKNOWN&#39;</span>
-    <span class="c1">#     )</span>
-
-    <span class="c1">#     model_enc = self.target_enc.transform(X[[&#39;model&#39;]])</span>
-    <span class="c1">#     season_enc = self.ohe.transform(X[[&#39;season&#39;]])</span>
-
-    <span class="c1">#     model_enc = np.filna(model_enc, self.global_mean)</span>
-
-    <span class="c1">#     X.drop([&#39;model&#39;, &#39;season&#39;], axis=1, inplace=True)</span>
-    <span class="c1">#     X = np.hstack([X, model_enc, season_enc])</span>
-
-    <span class="c1">#     return X</span>
-
 <div class="viewcode-block" id="CategoricalEncoder.transform">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.CategoricalEncoder.transform">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
@@ -627,6 +670,90 @@
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">combined</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">new_columns</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">index</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CategoricalEncoder.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.CategoricalEncoder.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RandomSampler">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.RandomSampler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RandomSampler</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">TRAIN_SAMPLES</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span> <span class="o">=</span> <span class="n">n_samples</span>
+
+<div class="viewcode-block" id="RandomSampler.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.RandomSampler.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffled_df_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="o">~</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">))</span> <span class="o">&amp;</span>
+                                  <span class="o">~</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">))]</span>
+                                <span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span>
+                                <span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]]</span><span class="o">.</span>
+                                <span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">))</span>
+
+        <span class="n">X_sampled</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">shuffled_df_idx</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="n">X_sampled</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X_sampled</span><span class="p">,</span>
+                               <span class="n">X</span><span class="p">[(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">))</span> <span class="o">|</span>
+                                 <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">))]])</span>
+        <span class="k">return</span> <span class="n">X_sampled</span></div>
+
+
+<div class="viewcode-block" id="RandomSampler.transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.RandomSampler.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">X</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TimeLabeler">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeLabeler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TimeLabeler</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TimeLabeler.fit_transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeLabeler.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">event_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">()</span>
+        <span class="n">new_event_times</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+        <span class="n">new_disks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">new_event_times</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_times</span><span class="o">.</span><span class="n">index</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">event_times</span><span class="p">,</span> <span class="n">new_event_times</span><span class="p">[</span><span class="n">new_disks</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">new_event_times</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">X</span><span class="p">[</span><span class="s1">&#39;max_lifetime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_times</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="TimeLabeler.transform">
+<a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeLabeler.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;failure&#39;</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">event_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">()</span>
+            <span class="n">new_event_times</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+            <span class="n">new_disks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">new_event_times</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_times</span><span class="o">.</span><span class="n">index</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">event_times</span><span class="p">,</span> <span class="n">new_event_times</span><span class="p">[</span><span class="n">new_disks</span><span class="p">]])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">new_event_times</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">X</span><span class="p">[</span><span class="s1">&#39;max_lifetime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_times</span><span class="p">)</span>
+
+            <span class="c1"># max_events = pd.Series()</span>
+            <span class="c1"># new_max_events = X.groupby(&#39;serial_number&#39;)[&#39;failure&#39;].max()</span>
+
+            <span class="c1"># self.max_events = pd.concat([max_events, new_max_events[new_disks]])</span>
+            <span class="c1"># self.max_events = self.max_events.combine(new_max_events, max, fill_value=0)</span>
+
+            <span class="c1"># X[&#39;max_event&#39;] = X[&#39;serial_number&#39;].map(self.max_events)</span>
+
+        <span class="k">return</span> <span class="n">X</span></div>
 </div>
 
 </pre></div>

@@ -16,7 +16,7 @@ class ModelScorer():
 
         ci = concordance_index(df_gt['duration'], lifetime_pred, df_gt['failure'])
 
-        survival_estim = df_pred.drop(['serial_number'], axis='columns')
+        survival_estim = df_pred.drop(['serial_number', 'time'], axis='columns')
         ibs = ibs_remain(
             None,
             survival_test.to_records(index=False),
