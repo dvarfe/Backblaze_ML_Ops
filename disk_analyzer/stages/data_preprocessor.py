@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Self
+from typing import List, Dict, Tuple, Optional
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
@@ -324,7 +324,7 @@ class TruncRemover():
     """Class to remove truncated disks.
     """
 
-    def fit(self, X: pd.DataFrame, y=None) -> Self:
+    def fit(self, X: pd.DataFrame, y=None):
         self.last_observation = X['date'].max()
         return self
 
@@ -372,7 +372,7 @@ class FeatureFilter():
 
 
 class NanImputer():
-    def __init__(self, fill_val: Dict | float = 0):
+    def __init__(self, fill_val = 0):
         self.fill_val = fill_val
 
     def fit(self, X, y=None):
