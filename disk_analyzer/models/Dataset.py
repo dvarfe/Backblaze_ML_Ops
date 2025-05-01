@@ -56,9 +56,11 @@ class DiskDataset(IterableDataset):
                 for line in f:
                     data_line = line.strip().split(',')
                     if self._mode == 'train':
+                        if data_line[event_time_idx] == data_line[time_idx]:
+                            continue
                         yield self._parse_train_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
                     elif self._mode == 'score':
-                        # We shouldn't use last observation in chain when scoring
+                        # We shouldn't use last observation in chain
                         if data_line[event_time_idx] == data_line[time_idx]:
                             continue
                         yield self._parse_score_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
