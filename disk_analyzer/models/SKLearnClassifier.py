@@ -88,23 +88,26 @@ class SKLClassifier():
                 ])
                 gt_chunks.append(gt_block)
 
-        df_surv = np.concat(pred_chunks, axis=0)
-        df_gt = np.concat(gt_chunks, axis=0) if gt_chunks else pd.DataFrame()
-        pred_serials = np.concat(pred_serials).reshape(-1, 1)
+        pred_values = np.concatenate(pred_chunks, axis=0)
+        serial_numbers_flat = np.concatenate(pred_serials)
 
-        df_surv = np.column_stack([pred_serials, df_surv])
-        df_surv = pd.DataFrame(df_surv, columns=['serial_number', 'time'] + times.tolist())
-        df_surv['time'] = df_surv['time'].astype('float').astype('int')
-        df_surv[times] = df_surv[times].astype('float')
+        df_surv = pd.DataFrame(pred_values, columns=['time'] + times.tolist())
+        df_surv.insert(0, 'serial_number', serial_numbers_flat)
+        df_surv['time'] = df_surv['time'].astype('int32')
+        df_surv[times] = df_surv[times].astype('float32')
 
-        df_gt = np.column_stack([pred_serials, df_gt])
-        df_gt = pd.DataFrame(df_gt, columns=['serial_number', 'time', 'duration', 'failure'])
-        df_gt = df_gt.astype({
-            'serial_number': 'string',
-            'time': 'int32',
-            'duration': 'int32'
-        })
-        df_gt['failure'] = df_gt['failure'] == '1'
+        if gt_chunks:
+            gt_values = np.concatenate(gt_chunks, axis=0)
+            df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
+            df_gt.insert(0, 'serial_number', serial_numbers_flat)
+            df_gt = df_gt.astype({
+                'serial_number': 'string',
+                'time': 'int32',
+                'duration': 'int32'
+            })
+            df_gt['failure'] = df_gt['failure'] == 1
+        else:
+            df_gt = pd.DataFrame()
 
         return df_surv, df_gt
 
