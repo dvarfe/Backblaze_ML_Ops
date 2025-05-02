@@ -111,7 +111,7 @@ class DLClassifier:
 
         df_surv = torch.concat(pred_chunks, dim=0).cpu().numpy()
         df_gt = torch.concat(gt_chunks, dim=0).cpu().numpy() if gt_chunks else pd.DataFrame()
-        pred_serials = np.concat(pred_serials).reshape(-1, 1)
+        pred_serials = np.concatenate(pred_serials).reshape(-1, 1)
 
         df_surv = np.column_stack([pred_serials, df_surv])
         df_surv = pd.DataFrame(df_surv, columns=['serial_number', 'time'] + times.tolist())

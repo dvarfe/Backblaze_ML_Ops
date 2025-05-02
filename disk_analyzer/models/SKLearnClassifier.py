@@ -28,7 +28,7 @@ class SKLClassifier():
 
         for _, _, X, y, time_to_event in dataloader:
             X_np = X.numpy()
-            X_np = np.concat([X, time_to_event.reshape(-1, 1)], axis=-1)
+            X_np = np.concatenate([X, time_to_event.reshape(-1, 1)], axis=-1)
             y_np = np.ravel(y.numpy())
 
             if not self._is_fitted:
@@ -62,7 +62,7 @@ class SKLClassifier():
             # Repeat each observation in batch len(times) times
             expanded_X = np.repeat(X.reshape(X.shape[0], -1, X.shape[1]), len(times), axis=1)
             expanded_times = np.repeat(times.reshape(1, -1, 1), batch_size, axis=0)
-            data_extended = np.concat([expanded_X, expanded_times], axis=-1)
+            data_extended = np.concatenate([expanded_X, expanded_times], axis=-1)
 
             hazards = self._model.predict_proba(data_extended.reshape(
                 batch_size * len(times), -1))[:, 1]  # Flatten batches
@@ -88,9 +88,9 @@ class SKLClassifier():
                 ])
                 gt_chunks.append(gt_block)
 
-        df_surv = np.concat(pred_chunks, axis=0)
-        df_gt = np.concat(gt_chunks, axis=0) if gt_chunks else pd.DataFrame()
-        pred_serials = np.concat(pred_serials).reshape(-1, 1)
+        df_surv = np.concatenate(pred_chunks, axis=0)
+        df_gt = np.concatenate(gt_chunks, axis=0) if gt_chunks else pd.DataFrame()
+        pred_serials = np.concatenate(pred_serials).reshape(-1, 1)
 
         df_surv = np.column_stack([pred_serials, df_surv])
         df_surv = pd.DataFrame(df_surv, columns=['serial_number', 'time'] + times.tolist())
