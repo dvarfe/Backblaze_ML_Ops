@@ -3,6 +3,7 @@ from typing import Tuple
 import pandas as pd
 from torch.utils.data import DataLoader
 import numpy as np
+from tqdm import tqdm
 
 from disk_analyzer.utils.constants import TIMES
 
@@ -30,7 +31,7 @@ class SKLClassifier():
             y_np = np.ravel(y.numpy())
 
             if not self._is_fitted:
-                self._model.partial_fit(X_np, y_np, classes=[0, 1])
+                self._model.fit(X_np, y_np)
                 self._is_fitted = True
             else:
                 self._model.partial_fit(X_np, y_np)
@@ -48,10 +49,17 @@ class SKLClassifier():
         rows_pred = []
         rows_gt = []
 
-        for serial_numbers, time, X, y, event_times in dataloader:
+        for serial_numbers, time, X, y, event_times in tqdm(dataloader):
             X = X.cpu().numpy()
             for cur_serial_number, cur_time, line, cur_y, event_time in zip(serial_numbers, time, X, y, event_times):
-                data_extended = np.array([list(line) + [time] for time in times])
+                # data_extended = np.array([list(line) + [time] for time in times])
+                line_array = np.array(line)
+                times_array = np.array(times)
+
+                data_extended = np.column_stack(
+                    line_array,
+                    times_array[:, np.newaxis]
+                )
                 hazards = self._model.predict_proba(data_extended)[:, 1]
                 cum_hazards = hazards.cumsum()
                 surv_f = np.exp(-cum_hazards)
@@ -86,4 +94,4 @@ class SKLClassifier():
     def get_expected_time_by_predictions(self, X_pred, times):
         X = X_pred
         survival_vec = X.drop(['serial_number', 'time'], axis='columns').values
-        return np.trapezoid(y=survival_vec, x=times)
+        return np.trapz(y=survival_vec, x=times)

@@ -78,7 +78,11 @@ class DLClassifier:
             for serial_numbers, time, X, y, real_durations in tqdm(dataloader):
                 X = X.cpu().numpy()
                 for cur_serial_number, cur_time, line, cur_y, event_time in zip(serial_numbers, time, X, y, real_durations):
-                    data_extended = torch.Tensor([list(line) + [time] for time in times]).to(self.device)
+                    # data_extended = torch.Tensor([list(line) + [time] for time in times]).to(self.device)
+                    data_extended = torch.cat([
+                    torch.tensor(line, device=self.device).expand(len(times), -1),
+                    torch.tensor(times, device=self.device).reshape(-1, 1)
+                    ], dim=1)
                     hazards = self._model(data_extended).squeeze().cpu().numpy()
                     cum_hazards = hazards.cumsum()
                     surv_f = np.exp(-cum_hazards)
@@ -112,4 +116,4 @@ class DLClassifier:
     def get_expected_time_by_predictions(self, X_pred, times):
         X = X_pred
         survival_vec = X.drop(['serial_number', 'time'], axis='columns').values
-        return np.trapezoid(y=survival_vec, x=times)
+        return np.trapz(y=survival_vec, x=times)

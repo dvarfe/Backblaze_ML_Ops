@@ -16,4 +16,5 @@ for path in paths:
     filename = os.path.basename(path)
     df = df.rename(columns={'id': 'serial_number', 'event':'failure'})
     df['max_lifetime'] = df.groupby('serial_number')['time'].transform('max')
+    df['failure'] = df.groupby('serial_number')['failure'].transform('max')
     df.to_csv(NEW_DIR + filename, index=False)
