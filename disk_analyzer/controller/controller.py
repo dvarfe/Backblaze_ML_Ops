@@ -5,22 +5,18 @@ import glob
 import pandas as pd
 from sklearn.linear_model import SGDClassifier  # type: ignore
 
-from disk_analyzer.stages import DataCollector, DataStats, ModelPipeline
-from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH, TIMES, FEATURES_NUM
-from disk_analyzer.models.DLClassifier import DLClassifier
+from ..stages import DataCollector, DataStats
+from ..models import DLClassifier
+from ..model_pipeline import ModelPipeline
+from ..utils.constants import PREPROCESSOR_STORAGE, STORAGE_PATH, TIMES, FEATURES_NUM
 
 
-class Controller():
-    """
-    Controller class which provides methods to control the pipeline.
+class Controller:
+    """Controller class which provides methods to control the pipeline.
     """
 
     def __init__(self):
         self.model_pipeline = None
-        self.start_idx = None
-        self.end_idx = None
-        self.mode = 'date'
-        self.__is_preprocessed = False
         self.paths = []
 
     def collect_data(self, *args, **kwargs):
@@ -30,8 +26,7 @@ class Controller():
         DataCollector(*args, **kwargs).collect_data()
 
     def rebatch(self, new_batchsize: int):
-        """
-        Changes the batchsize of the data collected.
+        """Changes the batchsize of the data collected.
         """
         DataCollector(paths=[], batchsize=new_batchsize,
                       cfgpath='').collect_data()
@@ -67,7 +62,7 @@ class Controller():
         if self.model_pipeline is None:
             self.model_pipeline = ModelPipeline()
         if model_name == 'logistic_regression':
-            model = SGDClassifier(loss='log_loss')
+            model = SGDClassifier(loss='log_loss', warm_start=True)
             self.model_pipeline.set_model(model, interface='sklearn')
         elif model_name == 'NN':
             model = DLClassifier(FEATURES_NUM)  # TODO: fix constant

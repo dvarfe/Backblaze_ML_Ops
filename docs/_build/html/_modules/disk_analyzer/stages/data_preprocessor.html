@@ -39,8 +39,11 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../API.html">API</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -74,12 +77,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">OneHotEncoder</span><span class="p">,</span> <span class="n">TargetEncoder</span><span class="p">,</span> <span class="n">StandardScaler</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>  <span class="c1"># type: ignore</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">TEST_SIZE</span><span class="p">,</span> <span class="n">FEATURES_TO_REMOVE</span><span class="p">,</span> <span class="n">TRAIN_SAMPLES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">TEST_SIZE</span><span class="p">,</span> <span class="n">FEATURES_TO_REMOVE</span><span class="p">,</span> <span class="n">TRAIN_SAMPLES</span>
 
 
 <div class="viewcode-block" id="TrainTestSplitter">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TrainTestSplitter">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">TrainTestSplitter</span><span class="p">():</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TrainTestSplitter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Train-test split of data. Supports initial training and further updating of training set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -177,7 +180,7 @@
 <span class="sd">            df (pd.DataFrame): Data</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            NDArray[np.str_]: list of serial numbers of untruncated disk</span>
+<span class="sd">            NDArray[str]: list of serial numbers of untruncated disk</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">df_previously_truncated</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">train_trunc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_trunc</span><span class="p">)]</span>

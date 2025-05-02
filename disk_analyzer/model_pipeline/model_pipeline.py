@@ -5,10 +5,9 @@ from typing import Optional, Dict, List
 import pandas as pd
 from torch.utils.data import DataLoader
 
-from disk_analyzer.utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES
-from disk_analyzer.models.SKLearnClassifier import SKLClassifier
-from disk_analyzer.models.Dataset import DiskDataset
-from . import TrainTestSplitter, DataPreprocessor, ModelScorer
+from ..utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES
+from ..models import DiskDataset, SKLClassifier
+from ..stages import TrainTestSplitter, DataPreprocessor, ModelScorer
 
 
 class ModelPipeline:

@@ -6,10 +6,10 @@ from numpy.typing import NDArray
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
 
-from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
+from ..utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
 
 
-class TrainTestSplitter():
+class TrainTestSplitter:
     """Train-test split of data. Supports initial training and further updating of training set.
     """
 
@@ -96,7 +96,7 @@ class TrainTestSplitter():
             df (pd.DataFrame): Data
 
         Returns:
-            NDArray[np.str_]: list of serial numbers of untruncated disk
+            NDArray[str]: list of serial numbers of untruncated disk
         """
         df_previously_truncated = df[df['serial_number'].isin(
             self.train_trunc + self.test_trunc)]

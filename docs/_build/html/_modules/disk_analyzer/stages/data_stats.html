@@ -41,7 +41,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">disk_analyzer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../API.html">API</a></li>
 </ul>
 
         </div>
@@ -73,12 +73,13 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">disk_analyzer.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATIC_STATS</span><span class="p">,</span> <span class="n">STATIC_STATS_DESCRIPTION</span><span class="p">,</span> <span class="n">DYNAMIC_STATS</span><span class="p">,</span> <span class="n">DYNAMIC_STATS_DESCRIPTION</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATIC_STATS</span><span class="p">,</span> <span class="n">DYNAMIC_STATS</span>
 
 
 <div class="viewcode-block" id="DataStats">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_stats.DataStats">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">DataStats</span><span class="p">():</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataStats</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">static_stats</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">STATIC_STATS</span><span class="p">,</span> <span class="n">dynamic_stats</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">DYNAMIC_STATS</span><span class="p">,</span>
                  <span class="n">dynamic_stats_freq</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;daily&#39;</span><span class="p">,</span> <span class="n">fig_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;data_stats_figures&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Class to calculate data statistics</span>

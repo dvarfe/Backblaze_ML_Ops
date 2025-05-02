@@ -82,7 +82,7 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_255_normalized']
 
 # Training constants
-EPOCHS = 20
+EPOCHS = 2
 TRAIN_BATCHSIZE = 10000
 FEATURES_NUM = 16
 

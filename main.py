@@ -1,10 +1,11 @@
 import shlex
 import cmd
 import argparse
+
 from disk_analyzer.controller import Controller
 from disk_analyzer.view import Viewer
 from disk_analyzer.utils.constants import BATCHSIZE, COLLECTOR_CFG, STORAGE_PATH
-from disk_analyzer.utils.constants import STATIC_STATS, DYNAMIC_STATS, STATIC_STATS_DESCRIPTION, DYNAMIC_STATS_DESCRIPTION, MODELS_VAULT, DEFAULT_MODEL_PATH
+from disk_analyzer.utils.constants import STATIC_STATS, DYNAMIC_STATS, MODELS_VAULT, DEFAULT_MODEL_PATH
 
 
 data_collect_parser = argparse.ArgumentParser()
@@ -109,11 +110,6 @@ class RelAnalyzer(cmd.Cmd):
         super().__init__()
         self.controller = controller
         self.viewer = viewer
-        # This parameters define the exact records model works with.
-        # More info in set_mode and set borders.
-        self.mode = 'date'
-        self.start_idx = None
-        self.end_idx = None
         self.storage_path = STORAGE_PATH
 
     def do_EOF(self, args):
@@ -168,25 +164,6 @@ class RelAnalyzer(cmd.Cmd):
             print(
                 f'Batchsize succesfully changed to {self.controller.batchsize}')
 
-    def do_show_params(self, args):
-        """Shows parameters of the data slice
-        """
-        print(f'Mode: {self.mode}')
-        print(f'Start index: {self.start_idx}')
-        print(f'End index: {self.end_idx}')
-
-    def do_help_data_stats(self, args):
-        """Shows help about each data statistics
-        """
-        print('Static data statistics:')
-        for key in STATIC_STATS_DESCRIPTION:
-            print(f'\t{key}: {STATIC_STATS_DESCRIPTION[key]}')
-        print('\n')
-
-        print('Dynamic data statistics:')
-        for key in DYNAMIC_STATS_DESCRIPTION:
-            print(f'\t{key}: {DYNAMIC_STATS_DESCRIPTION[key]}')
-
     def do_data_stats(self, args):
         """prints the statistics about the data
 
@@ -202,7 +179,7 @@ class RelAnalyzer(cmd.Cmd):
         args_split = data_stats_parser.parse_args(shlex.split(args))
         figpath = args_split.figpath
         stats = self.controller.get_data_statistics(
-            self.storage_path, args_split.static_stats, args_split.dynamic_stats, args_split.freq, figpath, self.mode, self.start_idx, self.end_idx)
+            self.storage_path, args_split.static_stats, args_split.dynamic_stats, args_split.freq, figpath)
         self.viewer.show_stats(*stats)
 
     def do_fit(self, args):
@@ -225,14 +202,6 @@ class RelAnalyzer(cmd.Cmd):
         args_split = shlex.split(args)
         path = args_split[0]
         self.controller.predict(path)
-
-    def do_predict_proba(self, args):
-        """Predict probabilities
-        Accepts path to the directory with preprocessed data.
-        """
-        args_split = shlex.split(args)
-        path = args_split[0]
-        self.controller.predict_proba(path)
 
     def do_preprocess(self, args):
         """Preprocess data

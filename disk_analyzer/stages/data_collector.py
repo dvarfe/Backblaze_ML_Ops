@@ -6,12 +6,11 @@ from typing import List, Optional
 import pandas as pd
 from tqdm import tqdm
 
-from disk_analyzer.utils.constants import BATCHSIZE
+from ..utils.constants import BATCHSIZE
 
 
 class DataCollector:
     """Class responsible for collecting the data.
-
     Accepts paths to various data sources, splits the data into batches, and copies it into storage.
 
     Args:
@@ -22,8 +21,8 @@ class DataCollector:
             Configuration file has higher priority than parameters from the constructor.
             Configuration file is a JSON file with the following structure:
             {
-                "batchsize": number of samples in one batch,
-                "paths": list of paths to various data sources
+            "batchsize": number of samples in one batch,
+            "paths": list of paths to various data sources
             }
     """
 
@@ -61,9 +60,8 @@ class DataCollector:
         return csv_files
 
     def batch_resize(self):
-        '''
-        Rearrange the data in existing storage to match new batch size
-        '''
+        """Rearrange the data in existing storage to match new batch size
+        """
         if not os.path.exists(self.__storage_path):
             os.mkdir(self.__storage_path)
         print('Batching!')
@@ -111,10 +109,9 @@ class DataCollector:
                                           f'batch_{batchnum}.csv'), index=False)
 
     def collect_data(self):
-        '''
-        Collects the data from various sources and stores it in batchesbatches.
+        """Collects the data from various sources and stores it in batchesbatches.
         Creates two categorial features: 'brand' and 'model'.
-        '''
+        """
         print('Begin preparation')
         files = self._list_csv(self.__paths)
         if not os.path.exists(self.__storage_path):

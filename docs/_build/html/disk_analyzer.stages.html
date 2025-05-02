@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="disk_analyzer.view package" href="disk_analyzer.view.html" />
-    <link rel="prev" title="disk_analyzer.controller package" href="disk_analyzer.controller.html" /> 
+    <link rel="prev" title="disk_analyzer.models package" href="disk_analyzer.models.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -53,9 +53,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="stages.html">stages package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="test.html">test module</a></li>
 </ul>
 </li>
 </ul>
@@ -92,23 +89,662 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
 </section>
-<section id="disk-analyzer-stages-data-collector-module">
-<h2>disk_analyzer.stages.data_collector module<a class="headerlink" href="#disk-analyzer-stages-data-collector-module" title="Link to this heading"></a></h2>
+<section id="module-disk_analyzer.stages.data_collector">
+<span id="disk-analyzer-stages-data-collector-module"></span><h2>disk_analyzer.stages.data_collector module<a class="headerlink" href="#module-disk_analyzer.stages.data_collector" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_collector.DataCollector">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_collector.</span></span><span class="sig-name descname"><span class="pre">DataCollector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'./Data_collected'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfgpath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'./analyzer_cfg.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_collector.html#DataCollector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_collector.DataCollector" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class responsible for collecting the data.
+Accepts paths to various data sources, splits the data into batches, and copies it into storage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paths</strong> (<em>list</em>) – List of paths to various data sources.</p></li>
+<li><p><strong>storage_path</strong> (<em>str</em>) – Path to storage of batches.</p></li>
+<li><p><strong>batchsize</strong> (<em>int</em>) – Number of samples to be stored in one batch.</p></li>
+<li><p><strong>cfgpath</strong> (<em>str</em>) – Path to configuration file. If not provided, checks in the current folder.
+Configuration file has higher priority than parameters from the constructor.
+Configuration file is a JSON file with the following structure:
+{
+“batchsize”: number of samples in one batch,
+“paths”: list of paths to various data sources
+}</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_collector.DataCollector.batch_resize">
+<span class="sig-name descname"><span class="pre">batch_resize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_collector.html#DataCollector.batch_resize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_collector.DataCollector.batch_resize" title="Link to this definition"></a></dt>
+<dd><p>Rearrange the data in existing storage to match new batch size</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_collector.DataCollector.collect_data">
+<span class="sig-name descname"><span class="pre">collect_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_collector.html#DataCollector.collect_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_collector.DataCollector.collect_data" title="Link to this definition"></a></dt>
+<dd><p>Collects the data from various sources and stores it in batchesbatches.
+Creates two categorial features: ‘brand’ and ‘model’.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="disk-analyzer-stages-data-preprocessor-module">
-<h2>disk_analyzer.stages.data_preprocessor module<a class="headerlink" href="#disk-analyzer-stages-data-preprocessor-module" title="Link to this heading"></a></h2>
+<section id="module-disk_analyzer.stages.data_preprocessor">
+<span id="disk-analyzer-stages-data-preprocessor-module"></span><h2>disk_analyzer.stages.data_preprocessor module<a class="headerlink" href="#module-disk_analyzer.stages.data_preprocessor" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.CategoricalEncoder">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">CategoricalEncoder</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#CategoricalEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.CategoricalEncoder" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class that encodes categorical columns.</p>
+<p>Target encoder for model and One-hot encoder for season.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.CategoricalEncoder.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#CategoricalEncoder.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.CategoricalEncoder.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.CategoricalEncoder.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#CategoricalEncoder.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.CategoricalEncoder.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.CategoricalEncoder.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#CategoricalEncoder.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.CategoricalEncoder.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DataPreprocessor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">DataPreprocessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">storage_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DataPreprocessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DataPreprocessor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Train data preprocessor class .</p>
+<dl class="simple">
+<dt>Preprocessing steps:</dt><dd><ol class="arabic simple">
+<li><p>Change date column to time</p></li>
+<li><p>Delete disks with more than one event</p></li>
+<li><p>Delete duplicates(observation with the same disk number and time)</p></li>
+<li><p>Drop columns with big percentage of NaN values and explicitely specified.</p></li>
+<li><p>Impute NaN values</p></li>
+<li><p>Vectorize categorical data</p></li>
+<li><p>Standardize data</p></li>
+</ol>
+</dd>
+</dl>
+<p>If new data is added, previously truncated disks may be added.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DataPreprocessor.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DataPreprocessor.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DataPreprocessor.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DataPreprocessor.open_data">
+<span class="sig-name descname"><span class="pre">open_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DataPreprocessor.open_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DataPreprocessor.open_data" title="Link to this definition"></a></dt>
+<dd><p>Open all csv files specified in paths</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>paths</strong> (<em>str</em>) – Paths to files</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Concatenated data</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DataPreprocessor.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DataPreprocessor.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DataPreprocessor.transform" title="Link to this definition"></a></dt>
+<dd><p>Preprocess data
+:param X: Data to preprocess
+:type X: pd.DataFrame</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Preprocessed data</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDoubles">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">DropDoubles</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDoubles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDoubles" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Remove disks with more than one event.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDoubles.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDoubles.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDoubles.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDoubles.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDoubles.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDoubles.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDoubles.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDoubles.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDoubles.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDuplicates">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">DropDuplicates</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDuplicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDuplicates" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Delete observations happening simultaneously.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDuplicates.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDuplicates.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDuplicates.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDuplicates.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDuplicates.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDuplicates.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DropDuplicates.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DropDuplicates.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DropDuplicates.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.FeatureFilter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">FeatureFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nan_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features_to_remove</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#FeatureFilter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.FeatureFilter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Classs to remove columns with lots of NaN values or explicitly specified.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.FeatureFilter.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#FeatureFilter.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.FeatureFilter.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.FeatureFilter.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#FeatureFilter.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.FeatureFilter.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.FeatureFilter.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#FeatureFilter.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.FeatureFilter.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.LabelShifter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">LabelShifter</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#LabelShifter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.LabelShifter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.LabelShifter.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#LabelShifter.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.LabelShifter.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.LabelShifter.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#LabelShifter.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.LabelShifter.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.NanImputer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">NanImputer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fill_val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#NanImputer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.NanImputer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.NanImputer.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#NanImputer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.NanImputer.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.NanImputer.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#NanImputer.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.NanImputer.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.NanImputer.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#NanImputer.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.NanImputer.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.RandomSampler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">RandomSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#RandomSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.RandomSampler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.RandomSampler.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#RandomSampler.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.RandomSampler.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.RandomSampler.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#RandomSampler.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.RandomSampler.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeLabeler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">TimeLabeler</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeLabeler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeLabeler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeLabeler.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeLabeler.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeLabeler.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeLabeler.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeLabeler.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeLabeler.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeTransformer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">TimeTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'date'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeTransformer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Change date column to time in days.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeTransformer.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeTransformer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeTransformer.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeTransformer.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeTransformer.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeTransformer.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeTransformer.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeTransformer.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeTransformer.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">TrainTestSplitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Train-test split of data. Supports initial training and further updating of training set.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.find_untruncated">
+<span class="sig-name descname"><span class="pre">find_untruncated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.find_untruncated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.find_untruncated" title="Link to this definition"></a></dt>
+<dd><p>Find disks that were previously truncated but are not anymore</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of serial numbers of untruncated disk</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NDArray[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.open_data">
+<span class="sig-name descname"><span class="pre">open_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.open_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.open_data" title="Link to this definition"></a></dt>
+<dd><p>Open data from the given paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>paths</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Paths.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dataframe containing the data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.reset" title="Link to this definition"></a></dt>
+<dd><p>Switches model to ‘not fitted’ state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rm_truncated_from_test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.run" title="Link to this definition"></a></dt>
+<dd><p>Runs initial train-test split</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rm_truncated_from_test</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove truncated disks from test sample. Defaults to True.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>train and test ids</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[NDArray[str], NDArray[str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.stratified_split">
+<span class="sig-name descname"><span class="pre">stratified_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.stratified_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.stratified_split" title="Link to this definition"></a></dt>
+<dd><p>Split data into train and test with stratification by failure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data</p></li>
+<li><p><strong>test_size</strong> (<em>float</em><em>, </em><em>optional</em>) – Test size - value between 0 and 1. Defaults to TEST_SIZE.</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>optional</em>) – Random state. Defaults to 42.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>train and test dataframes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[pd.DataFrame, pd.DataFrame]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.train_test_split">
+<span class="sig-name descname"><span class="pre">train_test_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rm_truncated_from_test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.train_test_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.train_test_split" title="Link to this definition"></a></dt>
+<dd><p>Split train and test ids from dataframe and delete truncated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_paths</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of paths to batched data</p></li>
+<li><p><strong>rm_truncated_from_test</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove truncated disks from test sample. Defaults to True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>train and test ids.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[NDArray[str], NDArray[str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TrainTestSplitter.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rm_truncated_from_test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">str_</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TrainTestSplitter.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.update" title="Link to this definition"></a></dt>
+<dd><p>Update train-test split with new data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p></li>
+<li><p><strong>rm_truncated_from_test</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove truncated data from test. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>train and test ids</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[NDArray[str], NDArray[str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TruncRemover">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">TruncRemover</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TruncRemover"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TruncRemover" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to remove truncated disks.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TruncRemover.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TruncRemover.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TruncRemover.fit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TruncRemover.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TruncRemover.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TruncRemover.fit_transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TruncRemover.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TruncRemover.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TruncRemover.transform" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="disk-analyzer-stages-data-stats-module">
-<h2>disk_analyzer.stages.data_stats module<a class="headerlink" href="#disk-analyzer-stages-data-stats-module" title="Link to this heading"></a></h2>
+<section id="module-disk_analyzer.stages.data_stats">
+<span id="disk-analyzer-stages-data-stats-module"></span><h2>disk_analyzer.stages.data_stats module<a class="headerlink" href="#module-disk_analyzer.stages.data_stats" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_stats.</span></span><span class="sig-name descname"><span class="pre">DataStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">static_stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['data_size',</span> <span class="pre">'min_date',</span> <span class="pre">'max_date',</span> <span class="pre">'mean_lifetime',</span> <span class="pre">'max_lifetime',</span> <span class="pre">'na_rate',</span> <span class="pre">'truncated_rate',</span> <span class="pre">'survival_rate',</span> <span class="pre">'failure_rate',</span> <span class="pre">'double_failures',</span> <span class="pre">'mean_time_between_observ',</span> <span class="pre">'mean_observ_per_day']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic_stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['mean_lifetime',</span> <span class="pre">'max_lifetime',</span> <span class="pre">'na_rate',</span> <span class="pre">'survival_rate',</span> <span class="pre">'failure_rate',</span> <span class="pre">'mean_observ']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic_stats_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'daily'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'data_stats_figures'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_data_size">
+<span class="sig-name descname"><span class="pre">calculate_data_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_data_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_data_size" title="Link to this definition"></a></dt>
+<dd><p>Calculates the dimensions of the dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple containing (number_of_rows, number_of_columns)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_double_failures">
+<span class="sig-name descname"><span class="pre">calculate_double_failures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_double_failures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_double_failures" title="Link to this definition"></a></dt>
+<dd><p>Counts double failure events per subject.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of disks with multiple failure events</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_durations">
+<span class="sig-name descname"><span class="pre">calculate_durations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Series</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_durations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_durations" title="Link to this definition"></a></dt>
+<dd><p>Calculates lifetimes of each disk that have failed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Lifitimes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_failure_rate">
+<span class="sig-name descname"><span class="pre">calculate_failure_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_failure_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_failure_rate" title="Link to this definition"></a></dt>
+<dd><p>Calculates failure rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – Input dataframe</p></li>
+<li><p><strong>event_col</strong> – Name of event indicator column</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Failure rate (0-100)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_max_date">
+<span class="sig-name descname"><span class="pre">calculate_max_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">datetime</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_max_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_max_date" title="Link to this definition"></a></dt>
+<dd><p>Finds the latest date in the dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Maximum datetime value found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_max_lifetime">
+<span class="sig-name descname"><span class="pre">calculate_max_lifetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_max_lifetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_max_lifetime" title="Link to this definition"></a></dt>
+<dd><p>Finds maximum lifetime value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Maximum lifetime value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_mean_lifetime">
+<span class="sig-name descname"><span class="pre">calculate_mean_lifetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_mean_lifetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_mean_lifetime" title="Link to this definition"></a></dt>
+<dd><p>Calculates average lifetime.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input datafram</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Mean lifetime value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_mean_observ_per_day">
+<span class="sig-name descname"><span class="pre">calculate_mean_observ_per_day</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_mean_observ_per_day"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_mean_observ_per_day" title="Link to this definition"></a></dt>
+<dd><p>Calculates average observations per day.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Mean number of observations per day</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_mean_time_between_observ">
+<span class="sig-name descname"><span class="pre">calculate_mean_time_between_observ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_mean_time_between_observ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_mean_time_between_observ" title="Link to this definition"></a></dt>
+<dd><p>Calculates average time between observations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Mean time between observations in days</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_min_date">
+<span class="sig-name descname"><span class="pre">calculate_min_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">datetime</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_min_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_min_date" title="Link to this definition"></a></dt>
+<dd><p>Finds the earliest date in the dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Minimum datetime value found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_na_rate">
+<span class="sig-name descname"><span class="pre">calculate_na_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Series</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_na_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_na_rate" title="Link to this definition"></a></dt>
+<dd><p>Calculates percentage of missing values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Percentage of NA values (0-100)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_static_stats">
+<span class="sig-name descname"><span class="pre">calculate_static_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_static_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_static_stats" title="Link to this definition"></a></dt>
+<dd><p>Method to calculate static statistics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_stats">
+<span class="sig-name descname"><span class="pre">calculate_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_stats" title="Link to this definition"></a></dt>
+<dd><p>Method to calculate statistics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Static statistics
+str: Path to the folder with figures of dynamic statistics</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_survival_rate">
+<span class="sig-name descname"><span class="pre">calculate_survival_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_survival_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_survival_rate" title="Link to this definition"></a></dt>
+<dd><p>Calculates survival rate. Number of disks failed divided by total number of disks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Survival rate (0-100)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="disk-analyzer-stages-model-pipeline-module">
-<h2>disk_analyzer.stages.model_pipeline module<a class="headerlink" href="#disk-analyzer-stages-model-pipeline-module" title="Link to this heading"></a></h2>
+<section id="module-disk_analyzer.stages.model_scoring">
+<span id="disk-analyzer-stages-model-scoring-module"></span><h2>disk_analyzer.stages.model_scoring module<a class="headerlink" href="#module-disk_analyzer.stages.model_scoring" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.model_scoring.ModelScorer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.model_scoring.</span></span><span class="sig-name descname"><span class="pre">ModelScorer</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/model_scoring.html#ModelScorer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_scoring.ModelScorer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.model_scoring.ModelScorer.get_ci_and_ibs">
+<span class="sig-name descname"><span class="pre">get_ci_and_ibs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_gt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/model_scoring.html#ModelScorer.get_ci_and_ibs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_scoring.ModelScorer.get_ci_and_ibs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="disk-analyzer-stages-model-scoring-module">
-<h2>disk_analyzer.stages.model_scoring module<a class="headerlink" href="#disk-analyzer-stages-model-scoring-module" title="Link to this heading"></a></h2>
-</section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="module-disk_analyzer.stages">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-disk_analyzer.stages" title="Link to this heading"></a></h2>
 </section>
 </section>
 
@@ -116,7 +752,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="disk_analyzer.controller.html" class="btn btn-neutral float-left" title="disk_analyzer.controller package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="disk_analyzer.models.html" class="btn btn-neutral float-left" title="disk_analyzer.models package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="disk_analyzer.view.html" class="btn btn-neutral float-right" title="disk_analyzer.view package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

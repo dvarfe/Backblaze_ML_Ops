@@ -28,14 +28,6 @@ disk\_analyzer.stages.data\_stats module
    :show-inheritance:
    :undoc-members:
 
-disk\_analyzer.stages.model\_pipeline module
---------------------------------------------
-
-.. automodule:: disk_analyzer.stages.model_pipeline
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 disk\_analyzer.stages.model\_scoring module
 -------------------------------------------
 

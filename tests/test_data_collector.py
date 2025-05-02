@@ -7,7 +7,7 @@ import os
 import sys
 import unittest
 
-from disk_analyzer.stages import DataCollector
+from ..stages import DataCollector
 
 
 class TestDataCollector(unittest.TestCase):

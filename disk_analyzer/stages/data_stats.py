@@ -2,10 +2,11 @@ from typing import List, Tuple
 from datetime import datetime
 import pandas as pd
 from numpy.typing import NDArray
-from disk_analyzer.utils.constants import STATIC_STATS, STATIC_STATS_DESCRIPTION, DYNAMIC_STATS, DYNAMIC_STATS_DESCRIPTION
+
+from ..utils.constants import STATIC_STATS, DYNAMIC_STATS
 
 
-class DataStats():
+class DataStats:
     def __init__(self, static_stats: List[str] = STATIC_STATS, dynamic_stats: List[str] = DYNAMIC_STATS,
                  dynamic_stats_freq: str = 'daily', fig_path: str = 'data_stats_figures') -> None:
         """Class to calculate data statistics
