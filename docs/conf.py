@@ -36,13 +36,12 @@ autodoc_mock_imports = [
     # Core ML/DL frameworks
     "torch",
     "sklearn",
+    "autograd",
+    "lifelines"
 
     # Data processing
     "pandas",
     "numpy",
-
-    # MLOps tools
-    "mlflow",
 
     # Utils
     "matplotlib",

@@ -1,25 +1,28 @@
-# Minimal makefile for Sphinx documentation
-#
+# Minimal Makefile for Sphinx documentation
 
-# You can set these variables from the command line, and also
-# from the environment for the first two.
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
+SPHINXAPIDOC  ?= sphinx-apidoc
 SOURCEDIR     = .
 BUILDDIR      = _build
 APIDOCDIR     = ../disk_analyzer
 APIDOCOUT     = .
 
-# Put it first so that "make" without argument is like "make help".
+# Помощь
 help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 
-.PHONY: help Makefile
+.PHONY: help clean Makefile apidoc
 
-# Catch-all target: route all unknown targets to Sphinx using the new
-# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+apidoc:
+	@echo "Generating API documentation with sphinx-apidoc..."
+	@$(SPHINXAPIDOC) -o $(APIDOCOUT) $(APIDOCDIR) --force
+
+clean:
+	@echo "Cleaning build directory..."
+	@rm -rf $(BUILDDIR)
+
 %: Makefile
-	@echo "Generating API documentation..."
-	sphinx-apidoc -o $(APIDOCOUT) $(APIDOCDIR) --force 
-	@echo "Building HTML..."
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@$(MAKE) apidoc
+	@echo "Building documentation target: $@"
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)

@@ -84,7 +84,6 @@
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_collector.DataCollector">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DataCollector</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class responsible for collecting the data.</span>
-
 <span class="sd">    Accepts paths to various data sources, splits the data into batches, and copies it into storage.</span>
 
 <span class="sd">    Args:</span>
@@ -95,8 +94,8 @@
 <span class="sd">            Configuration file has higher priority than parameters from the constructor.</span>
 <span class="sd">            Configuration file is a JSON file with the following structure:</span>
 <span class="sd">            {</span>
-<span class="sd">                &quot;batchsize&quot;: number of samples in one batch,</span>
-<span class="sd">                &quot;paths&quot;: list of paths to various data sources</span>
+<span class="sd">            &quot;batchsize&quot;: number of samples in one batch,</span>
+<span class="sd">            &quot;paths&quot;: list of paths to various data sources</span>
 <span class="sd">            }</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -136,9 +135,8 @@
 <div class="viewcode-block" id="DataCollector.batch_resize">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_collector.DataCollector.batch_resize">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">batch_resize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Rearrange the data in existing storage to match new batch size</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rearrange the data in existing storage to match new batch size</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">):</span>
             <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Batching!&#39;</span><span class="p">)</span>
@@ -189,10 +187,9 @@
 <div class="viewcode-block" id="DataCollector.collect_data">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_collector.DataCollector.collect_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">collect_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Collects the data from various sources and stores it in batchesbatches.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Collects the data from various sources and stores it in batchesbatches.</span>
 <span class="sd">        Creates two categorial features: &#39;brand&#39; and &#39;model&#39;.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Begin preparation&#39;</span><span class="p">)</span>
         <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__paths</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">):</span>
