@@ -45,8 +45,10 @@ class DLClassifier:
         self._model.train()
         for epoch in range(epochs):
             total_loss = 0
-            for _, _, X, y, _ in dataloader:
+            for _, _, X, y, time_to_event in dataloader:
                 X = X.to(self.device).float()
+                time_to_event = time_to_event.to(self.device).int().unsqueeze(1)
+                X = torch.concat([X, time_to_event], dim=-1)
                 y = y.squeeze().to(self.device).float().unsqueeze(1)
 
                 self.optimizer.zero_grad()
@@ -61,48 +63,70 @@ class DLClassifier:
         self.is_fitted = True
 
     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Get survival function
-
-        Args:
-            dataloader (DataLoader): Dataloader with data
-
-        Returns:
-            pd.DataFrame: DataFrame with survival function for each observation
-        """
-
         self._model.eval()
-        rows_pred = []
-        rows_gt = []
+        # serials are contained separately, because they are strings
+        pred_chunks = []
+        pred_serials = []
+        gt_chunks = []
 
         with torch.no_grad():
-            for serial_numbers, time, X, y, real_durations in tqdm(dataloader):
-                X = X.cpu().numpy()
-                for cur_serial_number, cur_time, line, cur_y, event_time in zip(serial_numbers, time, X, y, real_durations):
-                    data_extended = torch.Tensor([list(line) + [time] for time in times]).to(self.device)
-                    hazards = self._model(data_extended).squeeze().cpu().numpy()
-                    cum_hazards = hazards.cumsum()
-                    surv_f = np.exp(-cum_hazards)
-                    row_pred = {
-                        'serial_number': cur_serial_number,
-                        'time': int(cur_time.cpu()),
-                        **dict(zip(times, surv_f))
-                    }
-                    rows_pred.append(row_pred)
+            # Make tensor out of times
+            times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
+            n_times = len(times)
 
-                    if event_time != -1:
-                        row_gt = {
-                            'serial_number': cur_serial_number,
-                            'time': int(cur_time.cpu()),
-                            'duration': int((event_time - cur_time).cpu()),
-                            'failure': bool(cur_y.cpu()),
-                        }
-                        rows_gt.append(row_gt)
+            for serial_numbers, obs_times, X, y, real_durations in tqdm(dataloader):
+                batch_size = X.size(0)
+                serial_numbers = np.array(serial_numbers)
 
-            df_surv = pd.DataFrame(rows_pred)
-            columns_order = ['serial_number', 'time'] + list(times)
-            df_surv = df_surv[columns_order]
+                X = X.to(self.device)
+                obs_times = obs_times.to(self.device).int()
 
-            df_gt = pd.DataFrame(rows_gt)
+                # Expand each observation on times
+                expanded_X = X.unsqueeze(1).expand(-1, n_times, -1)  # Repeat each observation in batch len(times) times
+                expanded_times = times_tensor.reshape(1, -1, 1).expand(batch_size, -1, -1)
+                data_extended = torch.cat([expanded_X, expanded_times], dim=-1)
+
+                hazards = self._model(data_extended.view(batch_size * len(times), -1))  # Flatten batches
+                hazards = hazards.view(batch_size, n_times)  # Get vector of predictions for each batch
+                surv_probs = torch.exp(-hazards.cumsum(dim=1))
+
+                pred_block = torch.column_stack([
+                    obs_times,
+                    surv_probs
+                ])
+
+                pred_chunks.append(pred_block)
+                pred_serials.append(serial_numbers)
+
+                if (real_durations != -1).any():
+                    real_durations = real_durations.to(self.device)
+                    y = y.to(self.device)
+                    # Process if there are true lifetime values
+                    gt_block = torch.column_stack([
+                        obs_times,
+                        real_durations - obs_times,
+                        y
+                    ])
+                    gt_chunks.append(gt_block)
+
+        df_surv = torch.concat(pred_chunks, dim=0).cpu().numpy()
+        df_gt = torch.concat(gt_chunks, dim=0).cpu().numpy() if gt_chunks else pd.DataFrame()
+        pred_serials = np.concat(pred_serials).reshape(-1, 1)
+
+        df_surv = np.column_stack([pred_serials, df_surv])
+        df_surv = pd.DataFrame(df_surv, columns=['serial_number', 'time'] + times.tolist())
+        df_surv['time'] = df_surv['time'].astype('float').astype('int')
+        df_surv[times] = df_surv[times].astype('float')
+
+        df_gt = np.column_stack([pred_serials, df_gt])
+        df_gt = pd.DataFrame(df_gt, columns=['serial_number', 'time', 'duration', 'failure'])
+        df_gt = df_gt.astype({
+            'serial_number': 'string',
+            'time': 'int32',
+            'duration': 'int32'
+        })
+        df_gt['failure'] = df_gt['failure'] == '1'
+
         return df_surv, df_gt
 
     def get_expected_time(self, dataloader, times=TIMES):

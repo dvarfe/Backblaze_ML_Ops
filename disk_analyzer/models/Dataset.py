@@ -36,6 +36,9 @@ class DiskDataset(IterableDataset):
         return self._len
 
     def __iter__(self) -> Generator[Tuple[str, int, torch.Tensor, bool, int], None, None]:
+        '''
+        Should always return time as the last column in data
+        '''
         # Shuffle files at the start of each epoch
         worker_info = get_worker_info()
         file_paths = self._split_files_for_workers(worker_info)
@@ -74,7 +77,7 @@ class DiskDataset(IterableDataset):
         cur_time = int(data_line[time_idx])
         event_time = int(data_line[event_time_idx])
         time_to_event = event_time - cur_time
-        data_vec += [time_to_event]
+        # data_vec += [time_to_event]
         y = data_line[label_idx] == '1'
         return data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event
 

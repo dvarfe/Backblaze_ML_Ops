@@ -3,6 +3,7 @@ from typing import Tuple
 import pandas as pd
 from torch.utils.data import DataLoader
 import numpy as np
+from tqdm import tqdm
 
 from disk_analyzer.utils.constants import TIMES
 
@@ -25,8 +26,9 @@ class SKLClassifier():
         Incrementally trains the model using batches from the dataloader.
         """
 
-        for _, _, X, y, _ in dataloader:
+        for _, _, X, y, time_to_event in dataloader:
             X_np = X.numpy()
+            X_np = np.concat([X, time_to_event.reshape(-1, 1)], axis=-1)
             y_np = np.ravel(y.numpy())
 
             if not self._is_fitted:
@@ -44,38 +46,65 @@ class SKLClassifier():
         Returns:
             pd.DataFrame: DataFrame with survival function for each observation
         """
+        # serials are contained separately, because they are strings
+        pred_chunks = []
+        pred_serials = []
+        gt_chunks = []
 
-        rows_pred = []
-        rows_gt = []
+        n_times = len(times)
 
-        for serial_numbers, time, X, y, event_times in dataloader:
-            X = X.cpu().numpy()
-            for cur_serial_number, cur_time, line, cur_y, event_time in zip(serial_numbers, time, X, y, event_times):
-                data_extended = np.array([list(line) + [time] for time in times])
-                hazards = self._model.predict_proba(data_extended)[:, 1]
-                cum_hazards = hazards.cumsum()
-                surv_f = np.exp(-cum_hazards)
-                row = {
-                    'serial_number': cur_serial_number,
-                    'time': int(cur_time),
-                    **dict(zip(times, surv_f))
-                }
-                rows_pred.append(row)
+        for serial_numbers, obs_times, X, y, real_durations in tqdm(dataloader):
+            batch_size = X.size(0)
+            serial_numbers = np.array(serial_numbers)
+            X = np.array(X)
 
-                if event_time != -1:
-                    row_gt = {
-                        'serial_number': cur_serial_number,
-                        'time': int(cur_time.cpu()),
-                        'duration': int((event_time - cur_time).cpu()),
-                        'failure': bool(cur_y.cpu()),
-                    }
-                    rows_gt.append(row_gt)
+            # Expand each observation on times
+            # Repeat each observation in batch len(times) times
+            expanded_X = np.repeat(X.reshape(X.shape[0], -1, X.shape[1]), len(times), axis=1)
+            expanded_times = np.repeat(times.reshape(1, -1, 1), batch_size, axis=0)
+            data_extended = np.concat([expanded_X, expanded_times], axis=-1)
 
-        df_surv = pd.DataFrame(rows_pred)
-        columns_order = ['serial_number', 'time'] + list(times)
-        df_surv = df_surv[columns_order]
+            hazards = self._model.predict_proba(data_extended.reshape(
+                batch_size * len(times), -1))[:, 1]  # Flatten batches
+            hazards = hazards.reshape(batch_size, n_times)  # Get vector of predictions for each batch
+            surv_probs = np.exp(-hazards.cumsum(axis=1))
 
-        df_gt = pd.DataFrame(rows_gt)
+            pred_block = np.column_stack([
+                obs_times,
+                surv_probs
+            ])
+
+            pred_chunks.append(pred_block)
+            pred_serials.append(serial_numbers)
+
+            if (real_durations != -1).any():
+                real_durations = real_durations
+                y = y
+                # Process if there are true lifetime values
+                gt_block = np.column_stack([
+                    obs_times,
+                    real_durations - obs_times,
+                    y
+                ])
+                gt_chunks.append(gt_block)
+
+        df_surv = np.concat(pred_chunks, axis=0)
+        df_gt = np.concat(gt_chunks, axis=0) if gt_chunks else pd.DataFrame()
+        pred_serials = np.concat(pred_serials).reshape(-1, 1)
+
+        df_surv = np.column_stack([pred_serials, df_surv])
+        df_surv = pd.DataFrame(df_surv, columns=['serial_number', 'time'] + times.tolist())
+        df_surv['time'] = df_surv['time'].astype('float').astype('int')
+        df_surv[times] = df_surv[times].astype('float')
+
+        df_gt = np.column_stack([pred_serials, df_gt])
+        df_gt = pd.DataFrame(df_gt, columns=['serial_number', 'time', 'duration', 'failure'])
+        df_gt = df_gt.astype({
+            'serial_number': 'string',
+            'time': 'int32',
+            'duration': 'int32'
+        })
+        df_gt['failure'] = df_gt['failure'] == '1'
 
         return df_surv, df_gt
 
