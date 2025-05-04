@@ -4,10 +4,9 @@ import argparse
 
 from disk_analyzer.controller import Controller
 from disk_analyzer.view import Viewer
-from disk_analyzer.utils.constants import BATCHSIZE, COLLECTOR_CFG, STORAGE_PATH
-from disk_analyzer.utils.constants import STATIC_STATS, DYNAMIC_STATS, MODELS_VAULT, DEFAULT_MODEL_PATH
-
-
+from disk_analyzer.utils.constants import (BATCHSIZE, COLLECTOR_CFG, MODEL_CFG, STORAGE_PATH, STATIC_STATS,
+                                           DYNAMIC_STATS, MODELS_VAULT, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE)
+# Data Collect parser
 data_collect_parser = argparse.ArgumentParser()
 data_collect_parser.add_argument(
     'dirpath',
@@ -35,7 +34,7 @@ data_collect_parser.add_argument(
     dest='cfgpath'
 )
 
-
+# Data Stats parser
 data_stats_parser = argparse.ArgumentParser()
 data_stats_parser.add_argument(
     '-s',
@@ -68,6 +67,35 @@ data_stats_parser.add_argument(
     dest='freq'
 )
 
+# Fit parser
+fit_parser = argparse.ArgumentParser()
+fit_parser.add_argument(
+    'm',
+    type=str,
+    default='NN',
+    # dest='m',
+    choices=['logistic_regression', 'NN'],
+    nargs='?',
+    help='Model to fit'
+)
+
+fit_parser.add_argument(
+    '-c',
+    '--config',
+    type=str,
+    default=MODEL_CFG,
+    dest='c'
+)
+
+fit_parser.add_argument(
+    '-p',
+    '--preprocessed_data',
+    type=str,
+    default=PREPROCESSOR_STORAGE,
+    dest='p'
+)
+
+# Save Model parser
 save_model_parser = argparse.ArgumentParser()
 save_model_parser.add_argument(
     '-p',
@@ -84,6 +112,7 @@ save_model_parser.add_argument(
     dest='n'
 )
 
+# Load Model parser
 load_model_parser = argparse.ArgumentParser()
 load_model_parser.add_argument(
     '-p',
@@ -186,13 +215,15 @@ class RelAnalyzer(cmd.Cmd):
         """Fits model
 
         Args:
-            args (): logistic_regression/NN/
+           -m, - model to fit.
+           -c, --config - path to config file
+           -p, --preprocessed_data - path to directory with preprocessed data
         """
-        args_split = shlex.split(args)
-        if len(args_split) == 1:
-            self.controller.fit(model_name=args_split[0])
-        else:
-            print('Incorrect input!')
+        args_split = fit_parser.parse_args(shlex.split(args))
+        try:
+            self.controller.fit(model_name=args_split.m, cfg=args_split.c, preprocessed_path=args_split.p)
+        except ValueError as v:
+            print(v)
 
     def do_predict(self, args):
         """Make predictions

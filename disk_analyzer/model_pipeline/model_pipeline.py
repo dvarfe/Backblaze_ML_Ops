@@ -3,10 +3,11 @@ import shutil
 from typing import Optional, Dict, List
 
 import pandas as pd
+from sklearn.linear_model import SGDClassifier  # type: ignore
 from torch.utils.data import DataLoader
 
 from ..utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES
-from ..models import DiskDataset, SKLClassifier
+from ..models import DLClassifier, SKLClassifier, DiskDataset
 from ..stages import TrainTestSplitter, DataPreprocessor, ModelScorer
 
 
@@ -23,10 +24,8 @@ class ModelPipeline:
                  train_test_splitter: Optional[TrainTestSplitter] = None,
                  data_preprocessor: Optional[DataPreprocessor] = None,
                  model_scorer: Optional[ModelScorer] = None,
-                 rm_truncated_from_test: bool = True,
                  batchsize: int = BATCHSIZE,
-                 prep_storage_path: str = PREPROCESSOR_STORAGE,
-                 model_params: Optional[Dict] = None):
+                 prep_storage_path: str = PREPROCESSOR_STORAGE):
 
         self.batchsize = batchsize
         self.prep_storage_path = prep_storage_path
@@ -34,7 +33,6 @@ class ModelPipeline:
         self.__train_test_splitter = train_test_splitter or TrainTestSplitter()
         self.__data_preprocessor = data_preprocessor or DataPreprocessor(storage_paths=data_paths)
         self._model_scorer = model_scorer or ModelScorer()
-        self.__rm_truncated_from_test = rm_truncated_from_test
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open data from the given paths.
@@ -69,15 +67,6 @@ class ModelPipeline:
 
             self.features_num = df_train.shape[1] - 1
 
-            # print('Save Preprocessed Data')
-            # for sample_name, df in zip(['Train', 'Test'], [df_train, df_test]):
-            #     if not os.path.exists(os.path.join(self.prep_storage_path, sample_name)):
-            #         os.
-            #     df.sort_values(by=['serial_number', 'time'], inplace=True)
-            #     for i in range((df.shape[0] + self.batchsize - 1)//self.batchsize):
-            #         df.iloc[i*self.batchsize:(i+1)*self.batchsize].to_csv(os.path.join(
-            #             self.prep_storage_path, sample_name, f'{str(i)}_preprocessed.csv'), index=False)
-
             print('Save Preprocessed Data')
 
             for sample_name, df in zip(['train', 'test'], [df_train, df_test]):
@@ -98,19 +87,24 @@ class ModelPipeline:
             _ = self.__data_preprocessor.fit_transform(self.open_data(data_paths))
         return sample_dir
 
-    def set_model(self, model, interface='sklearn'):
+    def set_model(self, model_name: str, model_params: Optional[Dict]):
         """Set model
 
         Args:
             model : Model
             interface (str, optional): Sklearn or torch. Defaults to 'sklearn'.
         """
-        if interface == 'sklearn':
-            self._model = SKLClassifier(model)
-        elif interface == 'torch':
-            self._model = model
+        if model_name == 'logistic_regression':
+            self._model = SKLClassifier(SGDClassifier(warm_start=True, loss='log_loss', **model_params))
+        elif model_name == 'NN':
+            if 'input_dim' not in model_params and self.features_num is None:
+                raise ValueError('input_dim must be specified')
+            elif 'input_dim' in model_params:
+                self._model = DLClassifier(**model_params)
+            else:
+                self._model = DLClassifier(input_dim=self.features_num, **model_params)
         else:
-            raise ValueError('Invalid interface. Supported interfaces are "sklearn" and "torch"')
+            raise ValueError('Invalid mode. Only "logistic_regression" and "NN" are supported')
 
     def fit(self, paths: List[str]):
         """Fit model

@@ -1,9 +1,9 @@
+import json
 from typing import Tuple, List
 import os
 import glob
 
 import pandas as pd
-from sklearn.linear_model import SGDClassifier  # type: ignore
 
 from ..stages import DataCollector, DataStats
 from ..models import DLClassifier
@@ -16,17 +16,31 @@ class Controller:
     """
 
     def __init__(self):
+        """
+        Initialize the Controller class.
+
+        Sets up the model pipeline and paths attributes for data processing and analysis.
+        Initially sets model_pipeline to None and creates an empty list for paths.
+        """
         self.model_pipeline = None
         self.paths = []
 
     def collect_data(self, *args, **kwargs):
         """
-        Collects data from the given paths and saves it to the given location.
+        Collect data using the DataCollector.
+
+        Args:
+            *args: Variable positional arguments to be passed to DataCollector.
+            **kwargs: Variable keyword arguments to be passed to DataCollector.
         """
         DataCollector(*args, **kwargs).collect_data()
 
     def rebatch(self, new_batchsize: int):
-        """Changes the batchsize of the data collected.
+        """
+        Change the batch size of collected data.
+
+        Args:
+            new_batchsize (int): The new batch size to be used for data collection.
         """
         DataCollector(paths=[], batchsize=new_batchsize,
                       cfgpath='').collect_data()
@@ -52,23 +66,46 @@ class Controller:
         return stats
 
     def preprocess_data(self, storage_path: str = STORAGE_PATH, model_mode: str = 'train'):
+        """
+        Preprocess data for model training or inference.
+
+        Finds all CSV files in the specified storage path and initializes 
+        a ModelPipeline for data preprocessing.
+
+        Args:
+            storage_path (str, optional): Path to the directory containing data files. 
+                                          Defaults to STORAGE_PATH.
+            model_mode (str, optional): Mode of preprocessing, either 'train' or 'inference'. 
+                                        Defaults to 'train'.
+        """
         paths = glob.glob(os.path.join(storage_path, '*.csv'))
         if self.model_pipeline is None:
             self.model_pipeline = ModelPipeline(paths)
         self.model_pipeline.preprocess(data_paths=paths, mode=model_mode)
         self.__is_preprocessed = True
 
-    def fit(self, model_name: str = 'logistic_regression', preprocessed_path: str = PREPROCESSOR_STORAGE):
+    def fit(self, model_name: str, cfg: str, preprocessed_path: str):
+        """Train a model on preprocessed data.
+        Supports two model types: logistic regression (sklearn) and Neural Network (torch).
+        Initializes the model and fits it on preprocessed training batches.
+
+        Args:
+            model_name (str): Name of the model to train. Supports 'logistic_regression' or 'NN'. 
+            cfg (str): Path to config file with model parameters.
+            preprocessed_path (str): Path to preprocessed training data. 
+
+        Raises:
+            ValueError: If an unsupported model name is provided.
+        """
+
+        if os.path.exists(cfg):
+            model_params = json.load(open(cfg, 'r'))
+        else:
+            model_params = {}
+
         if self.model_pipeline is None:
             self.model_pipeline = ModelPipeline()
-        if model_name == 'logistic_regression':
-            model = SGDClassifier(loss='log_loss', warm_start=True)
-            self.model_pipeline.set_model(model, interface='sklearn')
-        elif model_name == 'NN':
-            model = DLClassifier(FEATURES_NUM)  # TODO: fix constant
-            self.model_pipeline.set_model(model, interface='torch')
-        else:
-            raise ValueError("Model name must be either 'logistic_regression' or 'NN'")
+        self.model_pipeline.set_model(model_name, model_params=model_params)
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
         self.model_pipeline.fit(batches)
 
@@ -89,12 +126,12 @@ class Controller:
         print(self.model_pipeline.score_model([path], times))
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
-        """Open data from the given paths.
+        """Combine multiple CSV files into a single pandas DataFrame.
 
         Args:
-            paths (List[str]): Paths.
+            paths (List[str]): List of file paths to CSV files.
 
         Returns:
-            pd.DataFrame: Dataframe containing the data.
+            pd.DataFrame: A consolidated DataFrame containing data from all input files.
         """
         return pd.concat([pd.read_csv(path) for path in paths])

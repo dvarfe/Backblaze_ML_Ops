@@ -169,7 +169,7 @@ class DataPreprocessor():
         If new data is added, previously truncated disks may be added.
     """
 
-    def __init__(self, storage_paths: List[str], batchsize: int = BATCHSIZE, verbose: bool = True):
+    def __init__(self, storage_paths: Optional[List[str]], batchsize: int = BATCHSIZE, verbose: bool = True):
         """Constructor.
 
         Args:
@@ -267,11 +267,8 @@ class TimeTransformer():
 
         X.loc[:, 'time'] = (X[self.time_column] - X.groupby('serial_number')
                             [self.time_column].transform('min')).dt.days.astype(int)
-        # X.loc[:, self.time_column] = pd.to_datetime(X.loc[:, self.time_column]) - self.min_date
-        # X.loc[:, 'time'] = X.loc[:, self.time_column].dt.days.astype(int)
 
         X.drop(self.time_column, axis=1, inplace=True)
-        # # X = X.rename(columns={self.time_column: 'time'})
         return X
 
     def fit_transform(self, X, y=None):
@@ -372,6 +369,9 @@ class FeatureFilter():
 
 
 class NanImputer():
+    """Impute Nans with last known value. First value is filled with fill_val.
+    """
+
     def __init__(self, fill_val: Dict | float = 0):
         self.fill_val = fill_val
 
@@ -401,6 +401,9 @@ class NanImputer():
 
 
 class LabelShifter():
+    """Shift class labels one backward and label each observation with its final state.
+    """
+
     def fit_transform(self, X, y=None):
 
         X = X.sort_values(by=['serial_number', 'time'])
@@ -482,6 +485,9 @@ class CategoricalEncoder():
 
 
 class RandomSampler():
+    """Create nested samples of data.
+    """
+
     def __init__(self, n_samples: int = TRAIN_SAMPLES):
         self.n_samples = n_samples
 
@@ -504,6 +510,9 @@ class RandomSampler():
 
 
 class TimeLabeler():
+    """Get last known time of each disk.
+    """
+
     def __init__(self):
         self.event_times = pd.Series()
 

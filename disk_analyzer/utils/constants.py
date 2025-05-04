@@ -6,7 +6,7 @@ import numpy as np
 
 # Data Collector constants
 BATCHSIZE = 500_000
-COLLECTOR_CFG = './analyzer_cfg.json'
+COLLECTOR_CFG = 'Config/analyzer_cfg.json'
 STORAGE_PATH = './Data/Data_collected'
 
 # Data Analyzer constants
@@ -60,7 +60,7 @@ DYNAMIC_STATS_DESCRIPTION = {
 }
 
 # Model Pipeline constants
-MODEL_TYPES = Union[SGDClassifier]
+MODEL_CFG = 'Config/model_cfg.json'
 
 # Data Preprocessor constants
 PREPROCESSOR_STORAGE = './Data/preprocessed'
