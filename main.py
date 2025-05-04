@@ -73,7 +73,6 @@ fit_parser.add_argument(
     'm',
     type=str,
     default='NN',
-    # dest='m',
     choices=['logistic_regression', 'NN'],
     nargs='?',
     help='Model to fit'
@@ -84,15 +83,16 @@ fit_parser.add_argument(
     '--config',
     type=str,
     default=MODEL_CFG,
-    dest='c'
+    dest='c',
+    help='Path to config file'
 )
-
 fit_parser.add_argument(
     '-p',
     '--preprocessed_data',
     type=str,
     default=PREPROCESSOR_STORAGE,
-    dest='p'
+    dest='p',
+    help='Path to directory with preprocessed data'
 )
 
 # Save Model parser
@@ -120,6 +120,25 @@ load_model_parser.add_argument(
     type=str,
     default=DEFAULT_MODEL_PATH,
     dest='p'
+)
+
+# Fine_tune parser
+fine_tune_parser = argparse.ArgumentParser()
+fine_tune_parser.add_argument(
+    '-m',
+    '--model_path',
+    type=str,
+    default=DEFAULT_MODEL_PATH,
+    nargs='?',
+    help='Path to pickled model'
+)
+fine_tune_parser.add_argument(
+    '-p',
+    '--preprocessed_data',
+    type=str,
+    default=PREPROCESSOR_STORAGE,
+    dest='p',
+    help='Path to directory with preprocessed data'
 )
 
 
@@ -225,6 +244,10 @@ class RelAnalyzer(cmd.Cmd):
         except ValueError as v:
             print(v)
 
+    def do_fine_tune(self, args):
+        args_split = fine_tune_parser.parse_args(shlex.split(args))
+        self.controller.fine_tune(args_split.m, args_split.p)
+
     def do_predict(self, args):
         """Make predictions
 
@@ -239,6 +262,12 @@ class RelAnalyzer(cmd.Cmd):
         """
         # TODO: Add arguments
         self.controller.preprocess_data()
+
+    def do_update_preprocessed(self, args):
+        """Add new data to the existing preprocessed data
+            args - path to the directory with new batched data
+        """
+        self.controller.update_preprocessed(args[0])
 
     def do_save_model(self, args):
         """Save model
@@ -259,7 +288,8 @@ class RelAnalyzer(cmd.Cmd):
     def do_score_model(self, args):
         args_split = shlex.split(args)
         path = args_split[0]
-        self.controller.score_model(path)
+        ci, ibs = self.controller.score_model(path)
+        viewer.show_metrics(ci, ibs)
 
     def do_exit(self, args):
         return True

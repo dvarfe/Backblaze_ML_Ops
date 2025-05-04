@@ -87,7 +87,7 @@ TRAIN_BATCHSIZE = 10000
 FEATURES_NUM = 16
 
 # Scoring constants
-TIMES = np.arange(1, 160)
+TIMES = np.arange(1, 160, dtype=np.int_)
 
 # Model vault
 MODELS_VAULT = 'Models'

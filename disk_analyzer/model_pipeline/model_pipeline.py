@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 
 import pandas as pd
 from sklearn.linear_model import SGDClassifier  # type: ignore
@@ -33,6 +33,7 @@ class ModelPipeline:
         self.__train_test_splitter = train_test_splitter or TrainTestSplitter()
         self.__data_preprocessor = data_preprocessor or DataPreprocessor(storage_paths=data_paths)
         self._model_scorer = model_scorer or ModelScorer()
+        self._model: Union[DLClassifier, SKLClassifier]
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open data from the given paths.
@@ -53,14 +54,15 @@ class ModelPipeline:
             mode (str, optional): Whether to preprocess train/test/tune data. Defaults to 'train'.
 
         """
-        if mode == 'train':
-            # Split data into train and test
-            train_id, test_id = self.__train_test_splitter.train_test_split(data_paths)
+        # Split data into train and test
+        train_id, test_id = self.__train_test_splitter.train_test_split(data_paths)
 
-            # Open data and pass it to preprocessor
-            df = self.open_data(data_paths)
-            df_train = df[df['serial_number'].isin(train_id)]
-            df_test = df[~df['serial_number'].isin(test_id)]
+        # Open data and pass it to preprocessor
+        df = self.open_data(data_paths)
+        df_train = df[df['serial_number'].isin(train_id)]
+        df_test = df[~df['serial_number'].isin(test_id)]
+
+        if mode == 'train':
 
             df_train, df_test = self.__data_preprocessor.fit_transform(
                 df_train), self.__data_preprocessor.transform(df_test)
@@ -84,10 +86,25 @@ class ModelPipeline:
                     batch = df.iloc[i*self.batchsize: (i+1)*self.batchsize]
                     batch.to_csv(os.path.join(sample_dir, f'{i}_preprocessed.csv'), index=False)
         elif mode == 'test' or mode == 'tune':
-            _ = self.__data_preprocessor.fit_transform(self.open_data(data_paths))
+            df_train, df_test = self.__data_preprocessor.fit_transform(
+                df_train), self.__data_preprocessor.transform(df_test)
+
+            self.features_num = df_train.shape[1] - 1
+
+            print('Save Preprocessed Data')
+
+            for sample_name, df in zip(['train', 'test'], [df_train, df_test]):
+                sample_dir = os.path.join(self.prep_storage_path, sample_name)
+
+                df.sort_values(by=['serial_number', 'time'], inplace=True)
+
+                total_rows = df.shape[0]
+                for i in range((total_rows + self.batchsize - 1) // self.batchsize):
+                    batch = df.iloc[i*self.batchsize: (i+1)*self.batchsize]
+                    batch.to_csv(os.path.join(sample_dir, f'{i}_preprocessed.csv'), index=False)
         return sample_dir
 
-    def set_model(self, model_name: str, model_params: Optional[Dict]):
+    def set_model(self, model_name: str, model_params: Dict):
         """Set model
 
         Args:
