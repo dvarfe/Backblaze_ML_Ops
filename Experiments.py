@@ -50,7 +50,7 @@ RES_FILENAME = 'grid_search.csv'
 TRAIN_GRID = [1, 2, 5, 10, 15, 20, 30, 40, 50]
 TEST_GRID = [1, 10, 25]
 METHODS = {'LogReg': SKLClassifier(SGDClassifier(loss='log_loss',  warm_start=True)), 'NN':DLClassifier(21)}
-TRAIN_BATCHSIZE = 1500
+TRAIN_BATCHSIZE = 10000
 TIMES = np.arange(0, 730) #729 - max duration in 2016, 2017
 
 if __name__ == "__main__":
@@ -90,7 +90,7 @@ if __name__ == "__main__":
             statistics['error_text'] = ['']
             statistics['model_id'] = [i]
     
-            model = METHODS[method]
+            model = SKLClassifier(SGDClassifier(loss='log_loss',  warm_start=True)) if method =='LogReg' else DLClassifier(21)
             
             try:
                 model.fit(dl_train)
