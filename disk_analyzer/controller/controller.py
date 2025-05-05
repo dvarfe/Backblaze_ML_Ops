@@ -117,17 +117,15 @@ class Controller:
             model_params = {}
 
         if self.model_pipeline is None:
-            self.model_pipeline = ModelPipeline()
+            self.model_pipeline = ModelPipeline(prep_storage_path=preprocessed_path)
         self.model_pipeline.set_model(model_name, model_params=model_params)
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
-        self.preprocess_path = preprocessed_path
         self.model_pipeline.fit(batches)
 
     def fine_tune(self, model_path: str, preprocessed_path: str):
         """Fine-tune a model on preprocessed data."""
         self.model_pipeline = self.load_model(model_path)
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
-        self.preprocess_path = preprocessed_path
         self.model_pipeline.fit(batches)
 
     def predict(self, path: str):
@@ -151,7 +149,7 @@ class Controller:
             times (_type_, optional): _description_. Defaults to TIMES.
         """
         if paths is None:
-            score_paths = glob.glob(os.path.join(self.preprocess_path, 'test', '*.csv'))
+            score_paths = glob.glob(os.path.join(self.model_pipeline.prep_storage_path, 'test', '*.csv'))
         else:
             score_paths = paths
         return self.model_pipeline.score_model(score_paths, times)

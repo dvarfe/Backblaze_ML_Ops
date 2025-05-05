@@ -89,6 +89,10 @@ FEATURES_NUM = 16
 # Scoring constants
 TIMES = np.arange(1, 160, dtype=np.int_)
 
-# Model vault
+# Models vault
 MODELS_VAULT = 'Models'
 DEFAULT_MODEL_PATH = os.path.join(MODELS_VAULT, 'default.pkl')
+
+# Models versions
+MODELS_VC = '.Models_vc'
+DESCRIPTOR_NAME = 'versions_df.csv'

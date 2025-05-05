@@ -6,9 +6,9 @@ import pandas as pd
 from sklearn.linear_model import SGDClassifier  # type: ignore
 from torch.utils.data import DataLoader
 
-from ..utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES
+from ..utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES, MODELS_VC
 from ..models import DLClassifier, SKLClassifier, DiskDataset
-from ..stages import TrainTestSplitter, DataPreprocessor, ModelScorer
+from ..stages import TrainTestSplitter, DataPreprocessor, ModelScorer, ModelVManager
 
 
 class ModelPipeline:
@@ -24,6 +24,7 @@ class ModelPipeline:
                  train_test_splitter: Optional[TrainTestSplitter] = None,
                  data_preprocessor: Optional[DataPreprocessor] = None,
                  model_scorer: Optional[ModelScorer] = None,
+                 models_version_manager: Optional[ModelVManager] = None,
                  batchsize: int = BATCHSIZE,
                  prep_storage_path: str = PREPROCESSOR_STORAGE):
 
@@ -33,6 +34,7 @@ class ModelPipeline:
         self.__train_test_splitter = train_test_splitter or TrainTestSplitter()
         self.__data_preprocessor = data_preprocessor or DataPreprocessor(storage_paths=data_paths)
         self._model_scorer = model_scorer or ModelScorer()
+        self._model_version_manager = models_version_manager or ModelVManager()
         self._model: Union[DLClassifier, SKLClassifier]
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
@@ -122,6 +124,7 @@ class ModelPipeline:
                 self._model = DLClassifier(input_dim=self.features_num, **model_params)
         else:
             raise ValueError('Invalid mode. Only "logistic_regression" and "NN" are supported')
+        self.model_name = model_name
 
     def fit(self, paths: List[str]):
         """Fit model
@@ -133,6 +136,7 @@ class ModelPipeline:
         dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
 
         self._model.fit(dl)
+        self._model_version_manager.save_model(self)
 
     def predict(self, paths: List[str], mode: str = 'score', times=TIMES):
         """Return predictions
