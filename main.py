@@ -260,7 +260,7 @@ class RelAnalyzer(cmd.Cmd):
     def do_preprocess(self, args):
         """Preprocess data
         """
-        # TODO: Add arguments
+        # TODO: Add argumentsj
         self.controller.preprocess_data()
 
     def do_update_preprocessed(self, args):
