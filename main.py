@@ -6,140 +6,6 @@ from disk_analyzer.controller import Controller
 from disk_analyzer.view import Viewer
 from disk_analyzer.utils.constants import (BATCHSIZE, COLLECTOR_CFG, MODEL_CFG, STORAGE_PATH, STATIC_STATS,
                                            DYNAMIC_STATS, MODELS_VAULT, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE)
-# Data Collect parser
-data_collect_parser = argparse.ArgumentParser()
-data_collect_parser.add_argument(
-    'dirpath',
-    nargs='*'
-)
-data_collect_parser.add_argument(
-    '-b',
-    '--batchsize',
-    type=int,
-    default=BATCHSIZE,
-    dest='batchsize'
-)
-data_collect_parser.add_argument(
-    '-s',
-    '--storagepath',
-    type=str,
-    default=STORAGE_PATH,
-    dest='storage_path'
-)
-data_collect_parser.add_argument(
-    '-c',
-    '--cfgpath',
-    type=str,
-    default=COLLECTOR_CFG,
-    dest='cfgpath'
-)
-
-# Data Stats parser
-data_stats_parser = argparse.ArgumentParser()
-data_stats_parser.add_argument(
-    '-s',
-    '--static',
-    type=str,
-    nargs='+',
-    default=STATIC_STATS,
-    dest='static_stats'
-)
-data_stats_parser.add_argument(
-    '-d',
-    '--dynamic',
-    nargs='+',
-    type=str,
-    default=DYNAMIC_STATS,
-    dest='dynamic_stats'
-)
-data_stats_parser.add_argument(
-    '-f',
-    '--figpath',
-    type=str,
-    default='data_stats_figures',
-    dest='figpath'
-)
-data_stats_parser.add_argument(
-    '-q',
-    '--freq',
-    type=str,
-    default='daily',
-    dest='freq'
-)
-
-# Fit parser
-fit_parser = argparse.ArgumentParser()
-fit_parser.add_argument(
-    'm',
-    type=str,
-    default='NN',
-    choices=['logistic_regression', 'NN'],
-    nargs='?',
-    help='Model to fit'
-)
-
-fit_parser.add_argument(
-    '-c',
-    '--config',
-    type=str,
-    default=MODEL_CFG,
-    dest='c',
-    help='Path to config file'
-)
-fit_parser.add_argument(
-    '-p',
-    '--preprocessed_data',
-    type=str,
-    default=PREPROCESSOR_STORAGE,
-    dest='p',
-    help='Path to directory with preprocessed data'
-)
-
-# Save Model parser
-save_model_parser = argparse.ArgumentParser()
-save_model_parser.add_argument(
-    '-p',
-    '--path',
-    type=str,
-    default=MODELS_VAULT,
-    dest='p'
-)
-save_model_parser.add_argument(
-    '-n',
-    '--name',
-    type=str,
-    default='default.pkl',
-    dest='n'
-)
-
-# Load Model parser
-load_model_parser = argparse.ArgumentParser()
-load_model_parser.add_argument(
-    '-p',
-    '--path',
-    type=str,
-    default=DEFAULT_MODEL_PATH,
-    dest='p'
-)
-
-# Fine_tune parser
-fine_tune_parser = argparse.ArgumentParser()
-fine_tune_parser.add_argument(
-    '-m',
-    '--model_path',
-    type=str,
-    default=DEFAULT_MODEL_PATH,
-    nargs='?',
-    help='Path to pickled model'
-)
-fine_tune_parser.add_argument(
-    '-p',
-    '--preprocessed_data',
-    type=str,
-    default=PREPROCESSOR_STORAGE,
-    dest='p',
-    help='Path to directory with preprocessed data'
-)
 
 
 class RelAnalyzer(cmd.Cmd):
@@ -184,6 +50,34 @@ class RelAnalyzer(cmd.Cmd):
             "sources": [list of sources paths]
         }
         """
+
+        data_collect_parser = argparse.ArgumentParser()
+        data_collect_parser.add_argument(
+            'dirpath',
+            nargs='*'
+        )
+        data_collect_parser.add_argument(
+            '-b',
+            '--batchsize',
+            type=int,
+            default=BATCHSIZE,
+            dest='batchsize'
+        )
+        data_collect_parser.add_argument(
+            '-s',
+            '--storagepath',
+            type=str,
+            default=STORAGE_PATH,
+            dest='storage_path'
+        )
+        data_collect_parser.add_argument(
+            '-c',
+            '--cfgpath',
+            type=str,
+            default=COLLECTOR_CFG,
+            dest='cfgpath'
+        )
+
         args_split = shlex.split(args)
         args_parsed = data_collect_parser.parse_args(args_split)
         self.storage_path = args_parsed.storage_path
@@ -224,6 +118,38 @@ class RelAnalyzer(cmd.Cmd):
             -f, --figpath - path to directory for saving figures.
         """
 
+        data_stats_parser = argparse.ArgumentParser()
+        data_stats_parser.add_argument(
+            '-s',
+            '--static',
+            type=str,
+            nargs='+',
+            default=STATIC_STATS,
+            dest='static_stats'
+        )
+        data_stats_parser.add_argument(
+            '-d',
+            '--dynamic',
+            nargs='+',
+            type=str,
+            default=DYNAMIC_STATS,
+            dest='dynamic_stats'
+        )
+        data_stats_parser.add_argument(
+            '-f',
+            '--figpath',
+            type=str,
+            default='data_stats_figures',
+            dest='figpath'
+        )
+        data_stats_parser.add_argument(
+            '-q',
+            '--freq',
+            type=str,
+            default='daily',
+            dest='freq'
+        )
+
         args_split = data_stats_parser.parse_args(shlex.split(args))
         figpath = args_split.figpath
         stats = self.controller.get_data_statistics(
@@ -238,6 +164,33 @@ class RelAnalyzer(cmd.Cmd):
            -c, --config - path to config file
            -p, --preprocessed_data - path to directory with preprocessed data
         """
+        fit_parser = argparse.ArgumentParser()
+        fit_parser.add_argument(
+            'm',
+            type=str,
+            default='NN',
+            choices=['logistic_regression', 'NN'],
+            nargs='?',
+            help='Model to fit'
+        )
+
+        fit_parser.add_argument(
+            '-c',
+            '--config',
+            type=str,
+            default=MODEL_CFG,
+            dest='c',
+            help='Path to config file'
+        )
+        fit_parser.add_argument(
+            '-p',
+            '--preprocessed_data',
+            type=str,
+            default=PREPROCESSOR_STORAGE,
+            dest='p',
+            help='Path to directory with preprocessed data'
+        )
+
         args_split = fit_parser.parse_args(shlex.split(args))
         try:
             self.controller.fit(model_name=args_split.m, cfg=args_split.c, preprocessed_path=args_split.p)
@@ -245,8 +198,17 @@ class RelAnalyzer(cmd.Cmd):
             print(v)
 
     def do_fine_tune(self, args):
+        fine_tune_parser = argparse.ArgumentParser()
+        fine_tune_parser.add_argument(
+            '-p',
+            '--preprocessed_data',
+            type=str,
+            default=PREPROCESSOR_STORAGE,
+            dest='p',
+            help='Path to directory with preprocessed data'
+        )
         args_split = fine_tune_parser.parse_args(shlex.split(args))
-        self.controller.fine_tune(args_split.m, args_split.p)
+        self.controller.fine_tune(args_split.p)
 
     def do_predict(self, args):
         """Make predictions
@@ -260,7 +222,7 @@ class RelAnalyzer(cmd.Cmd):
     def do_preprocess(self, args):
         """Preprocess data
         """
-        # TODO: Add argumentsj
+        # TODO: Add arguments
         self.controller.preprocess_data()
 
     def do_update_preprocessed(self, args):
@@ -274,6 +236,22 @@ class RelAnalyzer(cmd.Cmd):
             Accepts path to the directory with models vault.
         """
 
+        save_model_parser = argparse.ArgumentParser()
+        save_model_parser.add_argument(
+            '-p',
+            '--path',
+            type=str,
+            default=MODELS_VAULT,
+            dest='p'
+        )
+        save_model_parser.add_argument(
+            '-n',
+            '--name',
+            type=str,
+            default='default.pkl',
+            dest='n'
+        )
+
         args_parsed = save_model_parser.parse_args(shlex.split(args))
         self.controller.save_model(path=args_parsed.p, name=args_parsed.n)
 
@@ -282,6 +260,14 @@ class RelAnalyzer(cmd.Cmd):
             Accepts path to the model pickle file
         """
 
+        load_model_parser = argparse.ArgumentParser()
+        load_model_parser.add_argument(
+            '-p',
+            '--path',
+            type=str,
+            default=DEFAULT_MODEL_PATH,
+            dest='p'
+        )
         args_parsed = load_model_parser.parse_args(shlex.split(args))
         self.controller.load_model(model_path=args_parsed.p)
 
