@@ -76,11 +76,11 @@ class TestDataStats(unittest.TestCase):
         self.assertGreaterEqual(mean_time, 0)
 
     def test_calculate_stats(self):
-        result = self.stats_analyzer.calculate_stats(self.test_df)
+        result, _ = self.stats_analyzer.calculate_stats(self.test_df)
 
         self.assertIsInstance(result, dict)
         expected_keys = ['data_size', 'min_date', 'max_date', 'mean_lifetime',
-                         'max_lifetime', 'na_rate', 'censored_rate',
+                         'max_lifetime', 'na_rate',
                          'survival_rate', 'failure_rate']
         for key in expected_keys:
             self.assertIn(key, result)

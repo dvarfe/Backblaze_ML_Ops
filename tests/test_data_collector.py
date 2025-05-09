@@ -7,7 +7,7 @@ import os
 import sys
 import unittest
 
-from ..stages import DataCollector
+from disk_analyzer.stages import DataCollector
 
 
 class TestDataCollector(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestDataCollector(unittest.TestCase):
     def setUpClass(cls):
 
         # Create test data
-        cls.test_dir = "test_data"
+        cls.test_dir = os.path.join('tests', 'Test_Collector')
         cls.storage_path = os.path.join(cls.test_dir, "storage")
         cls.config_path = os.path.join(cls.test_dir, "test_config.json")
         cls.sample_data = [
@@ -62,9 +62,9 @@ class TestDataCollector(unittest.TestCase):
             cfgpath=self.config_path,
         )
 
-        self.assertEqual(collector.batchsize, 3)
-        self.assertIn(os.path.join(self.test_dir, "source1"), collector.paths)
-        self.assertEqual(collector.storage_path, self.storage_path)
+        self.assertEqual(collector._batchsize, 3)
+        self.assertIn(os.path.join(self.test_dir, "source1"), collector._paths)
+        self.assertEqual(collector._storage_path, self.storage_path)
 
     def test_initialization_without_config(self):
         collector = DataCollector(
@@ -72,9 +72,9 @@ class TestDataCollector(unittest.TestCase):
             storage_path=self.storage_path,
             batchsize=2,
         )
-        self.assertEqual(collector.batchsize, 2)
-        self.assertListEqual(collector.paths, ["source1", "source2"])
-        self.assertEqual(collector.storage_path, self.storage_path)
+        self.assertEqual(collector._batchsize, 2)
+        self.assertListEqual(collector._paths, ["source1", "source2"])
+        self.assertEqual(collector._storage_path, self.storage_path)
 
     def test_collect_data(self):
         collector = DataCollector(
