@@ -12,7 +12,7 @@ from numpy import int_
 from ..stages import DataCollector, DataStats
 from ..models import DLClassifier
 from ..model_pipeline import ModelPipeline
-from ..utils.constants import STORAGE_PATH, TIMES, DEFAULT_MODEL_PATH
+from ..utils.constants import STORAGE_PATH, TIMES, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE
 
 
 class Controller:
@@ -69,7 +69,7 @@ class Controller:
         stats = data_stats.calculate_stats(df)
         return stats
 
-    def preprocess_data(self, storage_path: str = STORAGE_PATH, model_mode: str = 'train'):
+    def preprocess_data(self, storage_path: str = STORAGE_PATH, preprocessed_path: str = PREPROCESSOR_STORAGE, model_mode: str = 'train'):
         """
         Preprocess data for model training or inference.
 
@@ -84,7 +84,7 @@ class Controller:
         """
         paths = glob.glob(os.path.join(storage_path, '*.csv'))
         if self.model_pipeline is None:
-            self.model_pipeline = ModelPipeline(paths)
+            self.model_pipeline = ModelPipeline(data_paths=paths, prep_storage_path=preprocessed_path)
         self.model_pipeline.preprocess(data_paths=paths, mode=model_mode)
 
     def update_preprocessed(self, new_dir: str):
@@ -110,21 +110,27 @@ class Controller:
         Raises:
             ValueError: If an unsupported model name is provided.
         """
-
+        model_params = {}
+        learn_params = {}
         if os.path.exists(cfg):
-            model_params = json.load(open(cfg, 'r'))
+            config = json.load(open(cfg, 'r'))
+            if 'learn_params' in config:
+                learn_params = config['learn_params']
+            if 'model_params' in config:
+                model_params = config['model_params']
         else:
             model_params = {}
 
         if self.model_pipeline is None:
             self.model_pipeline = ModelPipeline(prep_storage_path=preprocessed_path)
-        self.model_pipeline.set_model(model_name, model_params=model_params)
+        self.model_pipeline.set_model(model_name, learn_params=learn_params, model_params=model_params)
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
         self.model_pipeline.fit(batches)
 
-    def fine_tune(self, model_path: str, preprocessed_path: str):
+    def fine_tune(self, preprocessed_path: str):
         """Fine-tune a model on preprocessed data."""
-        self.model_pipeline = self.load_model(model_path)
+        if self.model_pipeline is None:
+            raise ValueError('You must load model first!')
         batches = glob.glob(os.path.join(preprocessed_path, 'train', '*.csv'))
         self.model_pipeline.fit(batches)
 
@@ -165,40 +171,24 @@ class Controller:
         """
         return pd.concat([pd.read_csv(path) for path in paths])
 
-    def load_model(self, path: str) -> ModelPipeline:
-        """Load a trained model from a file."""
+    def save_model(self, path: str):
+        """Save trained model into a file."""
+        if not os.path.exists(path):
+            os.makedirs(os.path.dirname(path))
+        with open(path, 'wb') as f:
+            pickle.dump(self.model_pipeline, f)
+
+    def load_model(self, path: str):
+        """Load trained model from a file."""
         with open(path, 'rb') as f:
             model = pickle.load(f)
-        return model
+        self.model_pipeline = model
 
-    def save_best_model(self, metric: str, viewer: Viewer):
+    def save_best_model(self, metric: str, path: str):
         """Save the best model based on the specified metric (ci or ibs).
 
         Args:
             metric (str): The metric to use for selecting the best model ('ci' or 'ibs').
         """
-        model_files = glob.glob(os.path.join('.Models_vc', '*.pkl'))
-        if not model_files:
-            raise FileNotFoundError("No models found in .Models_vc")
 
-        best_model = None
-        best_metric_value = float('-inf')
-
-        for model_file in model_files:
-            model_pipeline = self.load_model(model_file)
-            metrics = model_pipeline.evaluate_metrics()
-
-            if metric not in metrics:
-                raise ValueError(f"Metric '{metric}' not found in model evaluation.")
-
-            if metrics[metric] > best_metric_value:
-                best_metric_value = metrics[metric]
-                best_model = model_file
-
-        if best_model:
-            save_path = os.path.join('.Models_vc', 'best_model.pkl')
-            shutil.copy(best_model, save_path)
-            print(f"Best model saved to {save_path}")
-            return metrics.get('ci', 0), metrics.get('ibs', 0)
-        else:
-            raise ValueError("No suitable model found based on the specified metric.")
+        self.model_pipeline.save_best_model(metric, path)

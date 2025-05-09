@@ -21,6 +21,12 @@ class Viewer():
                     print(f'{key}: {static_stats[key]}')
         print(f'DYNAMIC STATISTICS are stored at: {dynamic_figpath}')
 
-    def show_metrics(self, ci, ibs):
+    def show_metrics(self, ci: float, ibs: float):
+        """Show metrics
+
+        Args:
+            ci (float): Concordance Index
+            ibs (float): Integrated Brier Score
+        """
         print(f'Concordance Index:{ci:4.f}')
         print(f'IBS: {ibs:4.f}')

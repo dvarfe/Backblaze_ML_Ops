@@ -31,8 +31,8 @@ class ModelPipeline:
         self.batchsize = batchsize
         self.prep_storage_path = prep_storage_path
         self.data_paths = data_paths
-        self.__train_test_splitter = train_test_splitter or TrainTestSplitter()
-        self.__data_preprocessor = data_preprocessor or DataPreprocessor(storage_paths=data_paths)
+        self._train_test_splitter = train_test_splitter or TrainTestSplitter()
+        self._data_preprocessor = data_preprocessor or DataPreprocessor(storage_paths=data_paths)
         self._model_scorer = model_scorer or ModelScorer()
         self._model_version_manager = models_version_manager or ModelVManager()
         self._model: Union[DLClassifier, SKLClassifier]
@@ -54,10 +54,9 @@ class ModelPipeline:
         Args:
             data_paths (pd.DataFrame): Paths to data files.
             mode (str, optional): Whether to preprocess train/test/tune data. Defaults to 'train'.
-
         """
         # Split data into train and test
-        train_id, test_id = self.__train_test_splitter.train_test_split(data_paths)
+        train_id, test_id = self._train_test_splitter.train_test_split(data_paths)
 
         # Open data and pass it to preprocessor
         df = self.open_data(data_paths)
@@ -66,10 +65,10 @@ class ModelPipeline:
 
         if mode == 'train':
 
-            df_train, df_test = self.__data_preprocessor.fit_transform(
-                df_train), self.__data_preprocessor.transform(df_test)
+            df_train, df_test = self._data_preprocessor.fit_transform(
+                df_train), self._data_preprocessor.transform(df_test)
 
-            self.features_num = df_train.shape[1] - 1
+            self.features_num = df_train.shape[1] - 2
 
             print('Save Preprocessed Data')
 
@@ -88,10 +87,10 @@ class ModelPipeline:
                     batch = df.iloc[i*self.batchsize: (i+1)*self.batchsize]
                     batch.to_csv(os.path.join(sample_dir, f'{i}_preprocessed.csv'), index=False)
         elif mode == 'test' or mode == 'tune':
-            df_train, df_test = self.__data_preprocessor.fit_transform(
-                df_train), self.__data_preprocessor.transform(df_test)
+            df_train, df_test = self._data_preprocessor.fit_transform(
+                df_train), self._data_preprocessor.transform(df_test)
 
-            self.features_num = df_train.shape[1] - 1
+            self.features_num = df_train.shape[1] + 1
 
             print('Save Preprocessed Data')
 
@@ -106,7 +105,7 @@ class ModelPipeline:
                     batch.to_csv(os.path.join(sample_dir, f'{i}_preprocessed.csv'), index=False)
         return sample_dir
 
-    def set_model(self, model_name: str, model_params: Dict):
+    def set_model(self, model_name: str, learn_params: Dict, model_params: Dict):
         """Set model
 
         Args:
@@ -114,14 +113,14 @@ class ModelPipeline:
             interface (str, optional): Sklearn or torch. Defaults to 'sklearn'.
         """
         if model_name == 'logistic_regression':
-            self._model = SKLClassifier(SGDClassifier(warm_start=True, loss='log_loss', **model_params))
+            self._model = SKLClassifier(SGDClassifier(warm_start=True, loss='log_loss', **model_params), **learn_params)
         elif model_name == 'NN':
             if 'input_dim' not in model_params and self.features_num is None:
                 raise ValueError('input_dim must be specified')
             elif 'input_dim' in model_params:
-                self._model = DLClassifier(**model_params)
+                self._model = DLClassifier(**learn_params, **model_params)
             else:
-                self._model = DLClassifier(input_dim=self.features_num, **model_params)
+                self._model = DLClassifier(input_dim=self.features_num, **learn_params, **model_params)
         else:
             raise ValueError('Invalid mode. Only "logistic_regression" and "NN" are supported')
         self.model_name = model_name
@@ -165,3 +164,6 @@ class ModelPipeline:
         df_pred, df_gt = self._model.predict(dl, times)
 
         return self._model_scorer.get_ci_and_ibs(self._model, df_pred, df_gt, times)
+
+    def save_best_model(self, metric: str, path: str):
+        self._model_version_manager.save_best_model(metric, path)
