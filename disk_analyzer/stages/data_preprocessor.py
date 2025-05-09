@@ -166,6 +166,9 @@ class DataPreprocessor():
             5. Impute NaN values
             6. Vectorize categorical data
             7. Standardize data
+            8. Sample n random observations
+            9. Shift labels one back
+            10. Add max_lifetime column
         If new data is added, previously truncated disks may be added.
     """
 
@@ -392,6 +395,10 @@ class NanImputer():
         else:
             for key, value in self.fill_val.items():
                 X.loc[key] = X.loc[key].fillna(value)
+
+        smart_features = [col for col in X.columns if col.startswith('smart')]
+        # Fill all non-numeric values in numeric columns with zeros
+        X.loc[:, smart_features] = X[smart_features].apply(pd.to_numeric, errors='coerce').fillna(0)
 
         return X
 
