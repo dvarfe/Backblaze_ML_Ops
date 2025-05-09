@@ -277,6 +277,27 @@ class RelAnalyzer(cmd.Cmd):
         ci, ibs = self.controller.score_model(path)
         viewer.show_metrics(ci, ibs)
 
+    def do_save_best_model(self, args):
+        """Save the best model based on a specified metric.
+
+        Args:
+            -m, --metric: Metric to use for selecting the best model ('ci' or 'ibs').
+        """
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            '-m', '--metric',
+            type=str,
+            choices=['ci', 'ibs'],
+            required=True,
+            help='Metric to use for selecting the best model.'
+        )
+        args_parsed = parser.parse_args(shlex.split(args))
+        try:
+            ci, ibs = self.controller.save_best_model(metric=args_parsed.metric, viewer=self.viewer)
+            viewer.show_metrics(ci, ibs)
+        except ValueError as v:
+            print(f"Error: {v}")
+
     def do_exit(self, args):
         return True
 

@@ -3,7 +3,7 @@ import glob
 import pickle
 from typing import Optional, Tuple, List
 import json
-
+import shutil
 
 import pandas as pd
 from numpy.typing import NDArray
@@ -170,3 +170,35 @@ class Controller:
         with open(path, 'rb') as f:
             model = pickle.load(f)
         return model
+
+    def save_best_model(self, metric: str, viewer: Viewer):
+        """Save the best model based on the specified metric (ci or ibs).
+
+        Args:
+            metric (str): The metric to use for selecting the best model ('ci' or 'ibs').
+        """
+        model_files = glob.glob(os.path.join('.Models_vc', '*.pkl'))
+        if not model_files:
+            raise FileNotFoundError("No models found in .Models_vc")
+
+        best_model = None
+        best_metric_value = float('-inf')
+
+        for model_file in model_files:
+            model_pipeline = self.load_model(model_file)
+            metrics = model_pipeline.evaluate_metrics()
+
+            if metric not in metrics:
+                raise ValueError(f"Metric '{metric}' not found in model evaluation.")
+
+            if metrics[metric] > best_metric_value:
+                best_metric_value = metrics[metric]
+                best_model = model_file
+
+        if best_model:
+            save_path = os.path.join('.Models_vc', 'best_model.pkl')
+            shutil.copy(best_model, save_path)
+            print(f"Best model saved to {save_path}")
+            return metrics.get('ci', 0), metrics.get('ibs', 0)
+        else:
+            raise ValueError("No suitable model found based on the specified metric.")
