@@ -1,2 +1,4 @@
-load_model -p Models/deafault.pkl
-save_best_model
+load_model -p Models/default.pkl
+make_report
+save_best_model -m ci
+exit

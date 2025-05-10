@@ -161,7 +161,7 @@ class ModelPipeline:
             raise ValueError("Model not set")
         ds = DiskDataset('train', paths)
 
-        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE, num_workers=1)
 
         self._model.fit(dl)
         self._model_version_manager.save_model(self)
@@ -187,7 +187,7 @@ class ModelPipeline:
 
         ds = DiskDataset(mode, paths)
 
-        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
+        dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE, num_workers=1)
 
         return self._model.predict(dl, times)
 

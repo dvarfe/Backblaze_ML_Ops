@@ -1,3 +1,5 @@
+collect_data Data/Sources
+preprocess
 fit -m NN
 save_model -p Models/default.pkl
 exit

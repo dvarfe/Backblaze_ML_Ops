@@ -308,8 +308,7 @@ class RelAnalyzer(cmd.Cmd):
         except Exception as e:
             print(f"Parsing error: {e}")
         try:
-            ci, ibs = self.controller.save_best_model(metric=args_parsed.metric, path=DEFAULT_MODEL_PATH)
-            viewer.show_metrics(ci, ibs)
+            self.controller.save_best_model(metric=args_parsed.metric, path=DEFAULT_MODEL_PATH)
         except ValueError as v:
             print(f"Error: {v}")
 
