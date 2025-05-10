@@ -9,5 +9,6 @@ Predictions
 .Models_vc
 Reports
 BigData
-Data
-!Sources
+Data/Data_collected
+Data/Data_downloaded
+Data_preprocessed
