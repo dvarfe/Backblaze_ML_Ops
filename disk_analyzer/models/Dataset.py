@@ -69,6 +69,18 @@ class DiskDataset(IterableDataset):
                         yield self._parse_infer_line(data_line, id_idx, time_idx)
 
     def _parse_train_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
+        """Parse a line of training data.
+
+        Args:
+            data_line (List[str]): A list of strings representing a line of data.
+            label_idx (int): Index of the label column.
+            id_idx (int): Index of the ID column.
+            time_idx (int): Index of the time column.
+            event_time_idx (int): Index of the event time column.
+
+        Returns:
+            Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, label, and time to event.
+        """
         # Parse the line and convert it to a tensor
 
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
@@ -80,6 +92,18 @@ class DiskDataset(IterableDataset):
         return data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event
 
     def _parse_score_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
+        """Parse a line of scoring data.
+
+        Args:
+            data_line (List[str]): A list of strings representing a line of data.
+            label_idx (int): Index of the label column.
+            id_idx (int): Index of the ID column.
+            time_idx (int): Index of the time column.
+            event_time_idx (int): Index of the event time column.
+
+        Returns:
+            Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, label, and lifetime.
+        """
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
         y = data_line[label_idx] == '1'
         lifetime = int(data_line[event_time_idx])
@@ -87,11 +111,29 @@ class DiskDataset(IterableDataset):
         return data_line[id_idx], int(data_line[time_idx]), torch.Tensor(data_vec), y, lifetime
 
     def _parse_infer_line(self, data_line: List[str], id_idx: int, time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
+        """Parse a line of inference data.
+
+        Args:
+            data_line (List[str]): A list of strings representing a line of data.
+            id_idx (int): Index of the ID column.
+            time_idx (int): Index of the time column.
+
+        Returns:
+            Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, and placeholders for label and time to event.
+        """
         data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx]]
 
         return data_line[id_idx], int(data_line[time_idx]), torch.Tensor(data_vec), 0, -1
 
     def _split_files_for_workers(self, worker_info):
+        """Split files across workers to avoid duplicates.
+
+        Args:
+            worker_info: Information about the current worker process.
+
+        Returns:
+            List[str]: A list of file paths assigned to the current worker.
+        """
         # Split files across workers to avoid duplicates
 
         if worker_info is None:

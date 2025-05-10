@@ -84,47 +84,44 @@
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_collector.DataCollector">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DataCollector</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class responsible for collecting the data.</span>
-<span class="sd">    Accepts paths to various data sources, splits the data into batches, and copies it into storage.</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        paths (list): List of paths to various data sources.</span>
-<span class="sd">        storage_path (str): Path to storage of batches.</span>
-<span class="sd">        batchsize (int): Number of samples to be stored in one batch.</span>
-<span class="sd">        cfgpath (str): Path to configuration file. If not provided, checks in the current folder.</span>
-<span class="sd">            Configuration file has higher priority than parameters from the constructor.</span>
-<span class="sd">            Configuration file is a JSON file with the following structure:</span>
-<span class="sd">            {</span>
-<span class="sd">            &quot;batchsize&quot;: number of samples in one batch,</span>
-<span class="sd">            &quot;paths&quot;: list of paths to various data sources</span>
-<span class="sd">            }</span>
+<span class="sd">    Accepts paths to various data sources, splits the data into batches, and copies it into storage.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">storage_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;./Data_collected&#39;</span><span class="p">,</span> <span class="n">batchsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">cfgpath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;./analyzer_cfg.json&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the DataCollector class.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            paths (Optional[List[str]]): List of paths to various data sources.</span>
+<span class="sd">            storage_path (str): Path to storage of batches.</span>
+<span class="sd">            batchsize (int): Number of samples to be stored in one batch.</span>
+<span class="sd">            cfgpath (str): Path to configuration file. If not provided, checks in the current folder.</span>
+<span class="sd">                Configuration file has higher priority than parameters from the constructor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cfgpath</span><span class="p">):</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfgpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">cfg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;batchsize&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">__paths</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;paths&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;storage_path&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">__paths</span> <span class="o">+=</span> <span class="n">paths</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;batchsize&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;paths&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;storage_path&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">+=</span> <span class="n">paths</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span> <span class="o">=</span> <span class="n">batchsize</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__paths</span> <span class="o">=</span> <span class="n">paths</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span> <span class="o">=</span> <span class="n">storage_path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span> <span class="o">=</span> <span class="n">batchsize</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">=</span> <span class="n">paths</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span> <span class="o">=</span> <span class="n">storage_path</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__paths</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Storage path must not be in paths&#39;</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_list_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of csv files in the paths</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of csv files in the paths.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            paths (List[str]): Paths to search for csv files.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[str]: CSV files found in the paths</span>
+<span class="sd">            List[str]: CSV files found in the paths.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="n">csv_files</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
             <span class="n">files</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
@@ -135,16 +132,16 @@
 <div class="viewcode-block" id="DataCollector.batch_resize">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_collector.DataCollector.batch_resize">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">batch_resize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rearrange the data in existing storage to match new batch size</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rearrange the data in existing storage to match new batch size.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Batching!&#39;</span><span class="p">)</span>
         <span class="c1"># additional file to save information about batches</span>
         <span class="n">df_contents</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
             <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;batchnum&#39;</span><span class="p">,</span> <span class="s1">&#39;min_date&#39;</span><span class="p">,</span> <span class="s1">&#39;max_date&#39;</span><span class="p">])</span>
 
-        <span class="n">old_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_csv</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">])</span>
+        <span class="n">old_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_csv</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">])</span>
         <span class="n">old_files</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
 
         <span class="n">df_size</span> <span class="o">=</span> <span class="mi">0</span>
@@ -157,49 +154,49 @@
             <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[ns]&#39;</span><span class="p">)</span>
             <span class="n">df_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
             <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file</span><span class="p">)))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file</span><span class="p">)))</span>
             <span class="n">df_size</span> <span class="o">+=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-            <span class="k">if</span> <span class="n">df_size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">df_size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span><span class="p">:</span>
                 <span class="n">df_concat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">df_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="n">df_concat</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">df_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">df_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span><span class="p">):</span>
                     <span class="n">new_batch</span> <span class="o">=</span> <span class="n">df_concat</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span>
-                                               <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span><span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span><span class="p">,</span> <span class="p">:]</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span><span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span><span class="p">,</span> <span class="p">:]</span>
                     <span class="n">new_batch</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;batch_</span><span class="si">{</span><span class="n">batchnum</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;batch_</span><span class="si">{</span><span class="n">batchnum</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
                     <span class="n">batchnum</span> <span class="o">+=</span> <span class="mi">1</span>
 
-                <span class="k">if</span> <span class="n">df_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">parts</span> <span class="o">=</span> <span class="n">df_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span>
-                    <span class="n">df_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">df_concat</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">parts</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">__batchsize</span><span class="p">:,</span> <span class="p">:]]</span>
+                <span class="k">if</span> <span class="n">df_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parts</span> <span class="o">=</span> <span class="n">df_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span>
+                    <span class="n">df_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">df_concat</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">parts</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batchsize</span><span class="p">:,</span> <span class="p">:]]</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">df_list</span> <span class="o">=</span> <span class="p">[]</span>
                     <span class="n">df_size</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df_list</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">df_concat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">df_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">df_concat</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">,</span>
+            <span class="n">df_concat</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">,</span>
                                           <span class="sa">f</span><span class="s1">&#39;batch_</span><span class="si">{</span><span class="n">batchnum</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DataCollector.collect_data">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_collector.DataCollector.collect_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">collect_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Collects the data from various sources and stores it in batchesbatches.</span>
-<span class="sd">        Creates two categorial features: &#39;brand&#39; and &#39;model&#39;.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Collects the data from various sources and stores it in batches.</span>
+<span class="sd">        Creates categorial feature &#39;season&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Begin preparation&#39;</span><span class="p">)</span>
-        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__paths</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">)</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_paths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">)</span>
         <span class="c1"># TODO: process several files at once</span>
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
             <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
             <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])</span>
             <span class="n">df</span><span class="p">[</span><span class="s1">&#39;season&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span>
-            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__storage_path</span><span class="p">,</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_path</span><span class="p">,</span>
                                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file</span><span class="p">)),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;End preparation&#39;</span><span class="p">)</span>
 

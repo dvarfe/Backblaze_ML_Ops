@@ -87,11 +87,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">TEST_SIZE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructor.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the TrainTestSplitter class.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            storage_paths (str, optional): paths to batched data.</span>
-<span class="sd">            test_size (float, optional): size of test set. Defaults to TEST_SIZE.</span>
+<span class="sd">            test_size (float, optional): Size of the test set. Defaults to TEST_SIZE.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">__test_size</span> <span class="o">=</span> <span class="n">test_size</span>
@@ -103,12 +102,12 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Split data into train and test with stratification by failure.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            df (pd.DataFrame): Data</span>
-<span class="sd">            test_size (float, optional): Test size - value between 0 and 1. Defaults to TEST_SIZE.</span>
-<span class="sd">            random_state (int, optional): Random state. Defaults to 42.</span>
+<span class="sd">            df (pd.DataFrame): Data to split.</span>
+<span class="sd">            test_size (float, optional): Proportion of the dataset to include in the test split. Defaults to TEST_SIZE.</span>
+<span class="sd">            random_state (int, optional): Random seed for reproducibility. Defaults to 42.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple[pd.DataFrame, pd.DataFrame]: train and test dataframes.</span>
+<span class="sd">            Tuple[pd.DataFrame, pd.DataFrame]: Train and test dataframes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">id_events</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
@@ -263,10 +262,13 @@
 <span class="sd">            5. Impute NaN values</span>
 <span class="sd">            6. Vectorize categorical data</span>
 <span class="sd">            7. Standardize data</span>
+<span class="sd">            8. Sample n random observations</span>
+<span class="sd">            9. Shift labels one back</span>
+<span class="sd">            10. Add max_lifetime column</span>
 <span class="sd">        If new data is added, previously truncated disks may be added.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">batchsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">batchsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructor.</span>
 
 <span class="sd">        Args:</span>
@@ -381,11 +383,8 @@
 
         <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;serial_number&#39;</span><span class="p">)</span>
                             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-        <span class="c1"># X.loc[:, self.time_column] = pd.to_datetime(X.loc[:, self.time_column]) - self.min_date</span>
-        <span class="c1"># X.loc[:, &#39;time&#39;] = X.loc[:, self.time_column].dt.days.astype(int)</span>
 
         <span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_column</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="c1"># # X = X.rename(columns={self.time_column: &#39;time&#39;})</span>
         <span class="k">return</span> <span class="n">X</span></div>
 
 
@@ -541,6 +540,9 @@
 <div class="viewcode-block" id="NanImputer">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.NanImputer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">NanImputer</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Impute Nans with last known value. First value is filled with fill_val.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fill_val</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fill_val</span> <span class="o">=</span> <span class="n">fill_val</span>
 
@@ -567,6 +569,10 @@
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_val</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
+        <span class="n">smart_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;smart&#39;</span><span class="p">)]</span>
+        <span class="c1"># Fill all non-numeric values in numeric columns with zeros</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">smart_features</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">smart_features</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;coerce&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">X</span></div>
 
 
@@ -582,6 +588,9 @@
 <div class="viewcode-block" id="LabelShifter">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.LabelShifter">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LabelShifter</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Shift class labels one backward and label each observation with its final state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="LabelShifter.fit_transform">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.LabelShifter.fit_transform">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -684,6 +693,9 @@
 <div class="viewcode-block" id="RandomSampler">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.RandomSampler">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RandomSampler</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create nested samples of data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">TRAIN_SAMPLES</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span> <span class="o">=</span> <span class="n">n_samples</span>
 
@@ -715,6 +727,9 @@
 <div class="viewcode-block" id="TimeLabeler">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TimeLabeler">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TimeLabeler</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get last known time of each disk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">event_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">()</span>
 

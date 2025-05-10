@@ -11,22 +11,20 @@ from ..utils.constants import BATCHSIZE
 
 class DataCollector:
     """Class responsible for collecting the data.
-    Accepts paths to various data sources, splits the data into batches, and copies it into storage.
 
-    Args:
-        paths (list): List of paths to various data sources.
-        storage_path (str): Path to storage of batches.
-        batchsize (int): Number of samples to be stored in one batch.
-        cfgpath (str): Path to configuration file. If not provided, checks in the current folder.
-            Configuration file has higher priority than parameters from the constructor.
-            Configuration file is a JSON file with the following structure:
-            {
-            "batchsize": number of samples in one batch,
-            "paths": list of paths to various data sources
-            }
+    Accepts paths to various data sources, splits the data into batches, and copies it into storage.
     """
 
     def __init__(self, paths: Optional[List[str]] = [], storage_path: str = './Data_collected', batchsize: int = BATCHSIZE, cfgpath: str = './analyzer_cfg.json'):
+        """Initialize the DataCollector class.
+
+        Args:
+            paths (Optional[List[str]]): List of paths to various data sources.
+            storage_path (str): Path to storage of batches.
+            batchsize (int): Number of samples to be stored in one batch.
+            cfgpath (str): Path to configuration file. If not provided, checks in the current folder.
+                Configuration file has higher priority than parameters from the constructor.
+        """
         if os.path.exists(cfgpath):
             with open(cfgpath) as f:
                 cfg = json.load(f)
@@ -43,15 +41,14 @@ class DataCollector:
             raise ValueError('Storage path must not be in paths')
 
     def _list_csv(self, paths: List[str]) -> List[str]:
-        """Returns a list of csv files in the paths
+        """Returns a list of csv files in the paths.
 
         Args:
             paths (List[str]): Paths to search for csv files.
 
         Returns:
-            List[str]: CSV files found in the paths
+            List[str]: CSV files found in the paths.
         """
-
         csv_files = []
         for path in paths:
             files = os.listdir(path)
@@ -60,7 +57,7 @@ class DataCollector:
         return csv_files
 
     def batch_resize(self):
-        """Rearrange the data in existing storage to match new batch size
+        """Rearrange the data in existing storage to match new batch size.
         """
         if not os.path.exists(self._storage_path):
             os.mkdir(self._storage_path)
@@ -109,7 +106,7 @@ class DataCollector:
                                           f'batch_{batchnum}.csv'), index=False)
 
     def collect_data(self):
-        """Collects the data from various sources and stores it in batchesbatches.
+        """Collects the data from various sources and stores it in batches.
         Creates categorial feature 'season'.
         """
         print('Begin preparation')

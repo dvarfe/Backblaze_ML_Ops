@@ -14,11 +14,10 @@ class TrainTestSplitter:
     """
 
     def __init__(self, test_size: float = TEST_SIZE) -> None:
-        """Constructor.
+        """Initialize the TrainTestSplitter class.
 
         Args:
-            storage_paths (str, optional): paths to batched data.
-            test_size (float, optional): size of test set. Defaults to TEST_SIZE.
+            test_size (float, optional): Size of the test set. Defaults to TEST_SIZE.
         """
 
         self.__test_size = test_size
@@ -28,12 +27,12 @@ class TrainTestSplitter:
         """Split data into train and test with stratification by failure.
 
         Args:
-            df (pd.DataFrame): Data
-            test_size (float, optional): Test size - value between 0 and 1. Defaults to TEST_SIZE.
-            random_state (int, optional): Random state. Defaults to 42.
+            df (pd.DataFrame): Data to split.
+            test_size (float, optional): Proportion of the dataset to include in the test split. Defaults to TEST_SIZE.
+            random_state (int, optional): Random seed for reproducibility. Defaults to 42.
 
         Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]: train and test dataframes.
+            Tuple[pd.DataFrame, pd.DataFrame]: Train and test dataframes.
         """
 
         id_events = df.groupby('serial_number')['failure'].max().reset_index()

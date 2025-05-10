@@ -69,8 +69,10 @@
            <div itemprop="articleBody">
              
   <h1>Source code for disk_analyzer.stages.model_scoring</h1><div class="highlight"><pre>
-<span></span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lifelines.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">concordance_index</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">survivors.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ibs_remain</span>
 
@@ -81,8 +83,18 @@
 
 <div class="viewcode-block" id="ModelScorer.get_ci_and_ibs">
 <a class="viewcode-back" href="../../../disk_analyzer.stages.html#disk_analyzer.stages.model_scoring.ModelScorer.get_ci_and_ibs">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_ci_and_ibs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">df_pred</span><span class="p">,</span> <span class="n">df_gt</span><span class="p">,</span> <span class="n">times</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ci_and_ibs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">df_pred</span><span class="p">:</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">df_gt</span><span class="p">:</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">times</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate Concordance Index (CI) and Integrated Brier Score (IBS).</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            model: The trained model used for predictions.</span>
+<span class="sd">            df_pred (pd.DataFrame): DataFrame containing predicted survival functions.</span>
+<span class="sd">            df_gt (pd.DataFrame): DataFrame containing ground truth durations and event indicators.</span>
+<span class="sd">            times (np.ndarray): Array of time points for evaluation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[float, float]: Concordance Index (CI) and Integrated Brier Score (IBS).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">survival_test</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
         <span class="n">survival_test</span><span class="p">[</span><span class="s1">&#39;event&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_gt</span><span class="p">[</span><span class="s1">&#39;failure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
         <span class="n">survival_test</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_gt</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span>

@@ -222,8 +222,6 @@
         <li><a href="disk_analyzer.models.html#module-disk_analyzer.models.DLClassifier">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     disk_analyzer.models.SKLearnClassifier
 
@@ -231,6 +229,8 @@
         <li><a href="disk_analyzer.models.html#module-disk_analyzer.models.SKLearnClassifier">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     disk_analyzer.stages
 
@@ -267,10 +267,24 @@
 </li>
       </ul></li>
       <li>
+    disk_analyzer.stages.model_v_manager
+
+      <ul>
+        <li><a href="disk_analyzer.stages.html#module-disk_analyzer.stages.model_v_manager">module</a>
+</li>
+      </ul></li>
+      <li>
     disk_analyzer.view
 
       <ul>
         <li><a href="disk_analyzer.view.html#module-disk_analyzer.view">module</a>
+</li>
+      </ul></li>
+      <li>
+    disk_analyzer.view.viewer
+
+      <ul>
+        <li><a href="disk_analyzer.view.html#module-disk_analyzer.view.viewer">module</a>
 </li>
       </ul></li>
       <li><a href="disk_analyzer.models.html#disk_analyzer.models.Dataset.DiskDataset">DiskDataset (class in disk_analyzer.models.Dataset)</a>
@@ -290,6 +304,8 @@
       <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.FeatureFilter">FeatureFilter (class in disk_analyzer.stages.data_preprocessor)</a>
 </li>
       <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.find_untruncated">find_untruncated() (disk_analyzer.stages.data_preprocessor.TrainTestSplitter method)</a>
+</li>
+      <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.fine_tune">fine_tune() (disk_analyzer.controller.controller.Controller method)</a>
 </li>
       <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.fit">fit() (disk_analyzer.controller.controller.Controller method)</a>
 
@@ -367,6 +383,12 @@
         <li><a href="disk_analyzer.models.html#disk_analyzer.models.SKLearnClassifier.SKLClassifier.get_expected_time_by_predictions">(disk_analyzer.models.SKLearnClassifier.SKLClassifier method)</a>
 </li>
       </ul></li>
+      <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.get_model_stats">get_model_stats() (disk_analyzer.controller.controller.Controller method)</a>
+
+      <ul>
+        <li><a href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.get_model_stats">(disk_analyzer.model_pipeline.model_pipeline.ModelPipeline method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -376,14 +398,22 @@
       <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.LabelShifter">LabelShifter (class in disk_analyzer.stages.data_preprocessor)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.load_model">load_model() (disk_analyzer.controller.controller.Controller method)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer.make_report">make_report() (disk_analyzer.view.viewer.Viewer method)</a>
+</li>
       <li><a href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline">ModelPipeline (class in disk_analyzer.model_pipeline.model_pipeline)</a>
 </li>
       <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.model_scoring.ModelScorer">ModelScorer (class in disk_analyzer.stages.model_scoring)</a>
+</li>
+      <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.model_v_manager.ModelVManager">ModelVManager (class in disk_analyzer.stages.model_v_manager)</a>
 </li>
       <li>
     module
@@ -417,7 +447,11 @@
 </li>
         <li><a href="disk_analyzer.stages.html#module-disk_analyzer.stages.model_scoring">disk_analyzer.stages.model_scoring</a>
 </li>
+        <li><a href="disk_analyzer.stages.html#module-disk_analyzer.stages.model_v_manager">disk_analyzer.stages.model_v_manager</a>
+</li>
         <li><a href="disk_analyzer.view.html#module-disk_analyzer.view">disk_analyzer.view</a>
+</li>
+        <li><a href="disk_analyzer.view.html#module-disk_analyzer.view.viewer">disk_analyzer.view.viewer</a>
 </li>
       </ul></li>
   </ul></td>
@@ -492,17 +526,33 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.save_best_model">save_best_model() (disk_analyzer.controller.controller.Controller method)</a>
+
+      <ul>
+        <li><a href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.save_best_model">(disk_analyzer.model_pipeline.model_pipeline.ModelPipeline method)</a>
+</li>
+        <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.model_v_manager.ModelVManager.save_best_model">(disk_analyzer.stages.model_v_manager.ModelVManager method)</a>
+</li>
+      </ul></li>
+      <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.save_model">save_model() (disk_analyzer.controller.controller.Controller method)</a>
+
+      <ul>
+        <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.model_v_manager.ModelVManager.save_model">(disk_analyzer.stages.model_v_manager.ModelVManager method)</a>
+</li>
+      </ul></li>
       <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.score_model">score_model() (disk_analyzer.controller.controller.Controller method)</a>
 
       <ul>
         <li><a href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.score_model">(disk_analyzer.model_pipeline.model_pipeline.ModelPipeline method)</a>
 </li>
       </ul></li>
-      <li><a href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.set_model">set_model() (disk_analyzer.model_pipeline.model_pipeline.ModelPipeline method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="disk_analyzer.view.html#disk_analyzer.view.Viewer.show_stats">show_stats() (disk_analyzer.view.Viewer method)</a>
+      <li><a href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.set_model">set_model() (disk_analyzer.model_pipeline.model_pipeline.ModelPipeline method)</a>
+</li>
+      <li><a href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer.show_metrics">show_metrics() (disk_analyzer.view.viewer.Viewer method)</a>
+</li>
+      <li><a href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer.show_stats">show_stats() (disk_analyzer.view.viewer.Viewer method)</a>
 </li>
       <li><a href="disk_analyzer.models.html#disk_analyzer.models.SKLearnClassifier.SKLClassifier">SKLClassifier (class in disk_analyzer.models.SKLearnClassifier)</a>
 </li>
@@ -559,12 +609,16 @@
       <li><a href="disk_analyzer.stages.html#disk_analyzer.stages.data_preprocessor.TrainTestSplitter.update">update() (disk_analyzer.stages.data_preprocessor.TrainTestSplitter method)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.update_preprocessed">update_preprocessed() (disk_analyzer.controller.controller.Controller method)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="disk_analyzer.view.html#disk_analyzer.view.Viewer">Viewer (class in disk_analyzer.view)</a>
+      <li><a href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer">Viewer (class in disk_analyzer.view.viewer)</a>
 </li>
   </ul></td>
 </tr></table>

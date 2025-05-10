@@ -95,35 +95,19 @@
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_collector.DataCollector">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_collector.</span></span><span class="sig-name descname"><span class="pre">DataCollector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'./Data_collected'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfgpath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'./analyzer_cfg.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_collector.html#DataCollector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_collector.DataCollector" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Class responsible for collecting the data.
-Accepts paths to various data sources, splits the data into batches, and copies it into storage.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>paths</strong> (<em>list</em>) – List of paths to various data sources.</p></li>
-<li><p><strong>storage_path</strong> (<em>str</em>) – Path to storage of batches.</p></li>
-<li><p><strong>batchsize</strong> (<em>int</em>) – Number of samples to be stored in one batch.</p></li>
-<li><p><strong>cfgpath</strong> (<em>str</em>) – Path to configuration file. If not provided, checks in the current folder.
-Configuration file has higher priority than parameters from the constructor.
-Configuration file is a JSON file with the following structure:
-{
-“batchsize”: number of samples in one batch,
-“paths”: list of paths to various data sources
-}</p></li>
-</ul>
-</dd>
-</dl>
+<p>Class responsible for collecting the data.</p>
+<p>Accepts paths to various data sources, splits the data into batches, and copies it into storage.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_collector.DataCollector.batch_resize">
 <span class="sig-name descname"><span class="pre">batch_resize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_collector.html#DataCollector.batch_resize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_collector.DataCollector.batch_resize" title="Link to this definition"></a></dt>
-<dd><p>Rearrange the data in existing storage to match new batch size</p>
+<dd><p>Rearrange the data in existing storage to match new batch size.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_collector.DataCollector.collect_data">
 <span class="sig-name descname"><span class="pre">collect_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_collector.html#DataCollector.collect_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_collector.DataCollector.collect_data" title="Link to this definition"></a></dt>
-<dd><p>Collects the data from various sources and stores it in batchesbatches.
-Creates two categorial features: ‘brand’ and ‘model’.</p>
+<dd><p>Collects the data from various sources and stores it in batches.
+Creates categorial feature ‘season’.</p>
 </dd></dl>
 
 </dd></dl>
@@ -156,7 +140,7 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.DataPreprocessor">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">DataPreprocessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">storage_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DataPreprocessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DataPreprocessor" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">DataPreprocessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">storage_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#DataPreprocessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.DataPreprocessor" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Train data preprocessor class .</p>
 <dl class="simple">
@@ -168,6 +152,9 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <li><p>Impute NaN values</p></li>
 <li><p>Vectorize categorical data</p></li>
 <li><p>Standardize data</p></li>
+<li><p>Sample n random observations</p></li>
+<li><p>Shift labels one back</p></li>
+<li><p>Add max_lifetime column</p></li>
 </ol>
 </dd>
 </dl>
@@ -282,6 +269,7 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.LabelShifter">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">LabelShifter</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#LabelShifter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.LabelShifter" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Shift class labels one backward and label each observation with its final state.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.LabelShifter.fit_transform">
 <span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#LabelShifter.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.LabelShifter.fit_transform" title="Link to this definition"></a></dt>
@@ -298,6 +286,7 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.NanImputer">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">NanImputer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fill_val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#NanImputer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.NanImputer" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Impute Nans with last known value. First value is filled with fill_val.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.NanImputer.fit">
 <span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#NanImputer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.NanImputer.fit" title="Link to this definition"></a></dt>
@@ -319,6 +308,7 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.RandomSampler">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">RandomSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#RandomSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.RandomSampler" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Create nested samples of data.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.RandomSampler.fit_transform">
 <span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#RandomSampler.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.RandomSampler.fit_transform" title="Link to this definition"></a></dt>
@@ -335,6 +325,7 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeLabeler">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_preprocessor.</span></span><span class="sig-name descname"><span class="pre">TimeLabeler</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeLabeler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeLabeler" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Get last known time of each disk.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_preprocessor.TimeLabeler.fit_transform">
 <span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_preprocessor.html#TimeLabeler.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_preprocessor.TimeLabeler.fit_transform" title="Link to this definition"></a></dt>
@@ -438,13 +429,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data</p></li>
-<li><p><strong>test_size</strong> (<em>float</em><em>, </em><em>optional</em>) – Test size - value between 0 and 1. Defaults to TEST_SIZE.</p></li>
-<li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>optional</em>) – Random state. Defaults to 42.</p></li>
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data to split.</p></li>
+<li><p><strong>test_size</strong> (<em>float</em><em>, </em><em>optional</em>) – Proportion of the dataset to include in the test split. Defaults to TEST_SIZE.</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>optional</em>) – Random seed for reproducibility. Defaults to 42.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>train and test dataframes.</p>
+<dd class="field-even"><p>Train and test dataframes.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tuple[pd.DataFrame, pd.DataFrame]</p>
@@ -523,16 +514,41 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.data_stats.</span></span><span class="sig-name descname"><span class="pre">DataStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">static_stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['data_size',</span> <span class="pre">'min_date',</span> <span class="pre">'max_date',</span> <span class="pre">'mean_lifetime',</span> <span class="pre">'max_lifetime',</span> <span class="pre">'na_rate',</span> <span class="pre">'truncated_rate',</span> <span class="pre">'survival_rate',</span> <span class="pre">'failure_rate',</span> <span class="pre">'double_failures',</span> <span class="pre">'mean_time_between_observ',</span> <span class="pre">'mean_observ_per_day']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic_stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['mean_lifetime',</span> <span class="pre">'max_lifetime',</span> <span class="pre">'na_rate',</span> <span class="pre">'survival_rate',</span> <span class="pre">'failure_rate',</span> <span class="pre">'mean_observ']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic_stats_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'daily'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'data_stats_figures'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to calculate data statistics.</p>
+<p>Statistics can be static and dynamic.
+Static statistics include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>data_size: Number of observations in the data.</p></li>
+<li><p>min_date: Date of the first observation.</p></li>
+<li><p>max_date: Date of the last observation.</p></li>
+<li><p>mean_lifetime: Mean lifetime of disks.</p></li>
+<li><p>max_lifetime: Maximum lifetime of disks.</p></li>
+<li><p>na_rate: Rate of missing data in each column.</p></li>
+<li><p>truncated_rate: Rate of truncated disks.</p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>Dynamic statistics are calculated per day/month and saved as figures. They include:</dt><dd><ul class="simple">
+<li><p>mean_lifetime: Mean lifetime of disks alive at the day/month.</p></li>
+<li><p>max_lifetime: Maximum lifetime of disks alive at the day/month.</p></li>
+<li><p>na_rate: Rate of missing data.</p></li>
+<li><p>survival_rate: Rate of disks that have survived at the day/month.</p></li>
+<li><p>failure_rate: Rate of disks that have failed at the day/month.</p></li>
+<li><p>mean_observ_per_day: Mean number of observations per day.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_data_size">
 <span class="sig-name descname"><span class="pre">calculate_data_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_data_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_data_size" title="Link to this definition"></a></dt>
-<dd><p>Calculates the dimensions of the dataset.</p>
+<dd><p>Calculate the dimensions of the dataset.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple containing (number_of_rows, number_of_columns)</p>
+<dd class="field-even"><p>Tuple containing (number_of_rows, number_of_columns).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -540,13 +556,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_double_failures">
 <span class="sig-name descname"><span class="pre">calculate_double_failures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_double_failures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_double_failures" title="Link to this definition"></a></dt>
-<dd><p>Counts double failure events per subject.</p>
+<dd><p>Count double failure events per subject.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Number of disks with multiple failure events</p>
+<dd class="field-even"><p>Number of disks with multiple failure events.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -554,13 +570,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_durations">
 <span class="sig-name descname"><span class="pre">calculate_durations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Series</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_durations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_durations" title="Link to this definition"></a></dt>
-<dd><p>Calculates lifetimes of each disk that have failed.</p>
+<dd><p>Calculate lifetimes of each disk that has failed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Lifitimes.</p>
+<dd class="field-even"><p>Lifetimes.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.Series</p>
@@ -571,16 +587,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_failure_rate">
 <span class="sig-name descname"><span class="pre">calculate_failure_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_failure_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_failure_rate" title="Link to this definition"></a></dt>
-<dd><p>Calculates failure rate.</p>
+<dd><p>Calculate failure rate.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – Input dataframe</p></li>
-<li><p><strong>event_col</strong> – Name of event indicator column</p></li>
-</ul>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Failure rate (0-100)</p>
+<dd class="field-even"><p>Failure rate (0-100).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -588,13 +601,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_max_date">
 <span class="sig-name descname"><span class="pre">calculate_max_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">datetime</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_max_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_max_date" title="Link to this definition"></a></dt>
-<dd><p>Finds the latest date in the dataset.</p>
+<dd><p>Find the latest date in the dataset.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Maximum datetime value found</p>
+<dd class="field-even"><p>Maximum datetime value found.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -602,13 +615,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_max_lifetime">
 <span class="sig-name descname"><span class="pre">calculate_max_lifetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_max_lifetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_max_lifetime" title="Link to this definition"></a></dt>
-<dd><p>Finds maximum lifetime value.</p>
+<dd><p>Find maximum lifetime value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Maximum lifetime value</p>
+<dd class="field-even"><p>Maximum lifetime value.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -616,13 +629,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_mean_lifetime">
 <span class="sig-name descname"><span class="pre">calculate_mean_lifetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_mean_lifetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_mean_lifetime" title="Link to this definition"></a></dt>
-<dd><p>Calculates average lifetime.</p>
+<dd><p>Calculate average lifetime.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input datafram</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Mean lifetime value</p>
+<dd class="field-even"><p>Mean lifetime value.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -630,13 +643,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_mean_observ_per_day">
 <span class="sig-name descname"><span class="pre">calculate_mean_observ_per_day</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_mean_observ_per_day"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_mean_observ_per_day" title="Link to this definition"></a></dt>
-<dd><p>Calculates average observations per day.</p>
+<dd><p>Calculate average observations per day.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Mean number of observations per day</p>
+<dd class="field-even"><p>Mean number of observations per day.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -644,13 +657,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_mean_time_between_observ">
 <span class="sig-name descname"><span class="pre">calculate_mean_time_between_observ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_mean_time_between_observ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_mean_time_between_observ" title="Link to this definition"></a></dt>
-<dd><p>Calculates average time between observations.</p>
+<dd><p>Calculate average time between observations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Mean time between observations in days</p>
+<dd class="field-even"><p>Mean time between observations in days.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -658,13 +671,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_min_date">
 <span class="sig-name descname"><span class="pre">calculate_min_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">datetime</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_min_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_min_date" title="Link to this definition"></a></dt>
-<dd><p>Finds the earliest date in the dataset.</p>
+<dd><p>Find the earliest date in the dataset.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Minimum datetime value found</p>
+<dd class="field-even"><p>Minimum datetime value found.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -672,13 +685,13 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_na_rate">
 <span class="sig-name descname"><span class="pre">calculate_na_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Series</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_na_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_na_rate" title="Link to this definition"></a></dt>
-<dd><p>Calculates percentage of missing values.</p>
+<dd><p>Calculate percentage of missing values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Percentage of NA values (0-100)</p>
+<dd class="field-even"><p>Percentage of NA values (0-100).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -686,10 +699,16 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_static_stats">
 <span class="sig-name descname"><span class="pre">calculate_static_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_static_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_static_stats" title="Link to this definition"></a></dt>
-<dd><p>Method to calculate static statistics.</p>
+<dd><p>Calculate static statistics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Calculated static statistics.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -697,14 +716,14 @@ Creates two categorial features: ‘brand’ and ‘model’.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_stats">
 <span class="sig-name descname"><span class="pre">calculate_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_stats" title="Link to this definition"></a></dt>
-<dd><p>Method to calculate statistics.</p>
+<dd><p>Calculate statistics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Data.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Static statistics
-str: Path to the folder with figures of dynamic statistics</p>
+<dd class="field-even"><p>Static statistics.
+str: Path to the folder with figures of dynamic statistics.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
@@ -715,13 +734,13 @@ str: Path to the folder with figures of dynamic statistics</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.data_stats.DataStats.calculate_survival_rate">
 <span class="sig-name descname"><span class="pre">calculate_survival_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/data_stats.html#DataStats.calculate_survival_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.data_stats.DataStats.calculate_survival_rate" title="Link to this definition"></a></dt>
-<dd><p>Calculates survival rate. Number of disks failed divided by total number of disks.</p>
+<dd><p>Calculate survival rate. Number of disks failed divided by total number of disks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> – Input dataframe</p>
+<dd class="field-odd"><p><strong>df</strong> – Input dataframe.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Survival rate (0-100)</p>
+<dd class="field-even"><p>Survival rate (0-100).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -737,8 +756,52 @@ str: Path to the folder with figures of dynamic statistics</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="disk_analyzer.stages.model_scoring.ModelScorer.get_ci_and_ibs">
-<span class="sig-name descname"><span class="pre">get_ci_and_ibs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_gt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/model_scoring.html#ModelScorer.get_ci_and_ibs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_scoring.ModelScorer.get_ci_and_ibs" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_ci_and_ibs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_pred</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_gt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/disk_analyzer/stages/model_scoring.html#ModelScorer.get_ci_and_ibs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_scoring.ModelScorer.get_ci_and_ibs" title="Link to this definition"></a></dt>
+<dd><p>Calculate Concordance Index (CI) and Integrated Brier Score (IBS).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – The trained model used for predictions.</p></li>
+<li><p><strong>df_pred</strong> (<em>pd.DataFrame</em>) – DataFrame containing predicted survival functions.</p></li>
+<li><p><strong>df_gt</strong> (<em>pd.DataFrame</em>) – DataFrame containing ground truth durations and event indicators.</p></li>
+<li><p><strong>times</strong> (<em>np.ndarray</em>) – Array of time points for evaluation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Concordance Index (CI) and Integrated Brier Score (IBS).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[float, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-disk_analyzer.stages.model_v_manager">
+<span id="disk-analyzer-stages-model-v-manager-module"></span><h2>disk_analyzer.stages.model_v_manager module<a class="headerlink" href="#module-disk_analyzer.stages.model_v_manager" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="disk_analyzer.stages.model_v_manager.ModelVManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.stages.model_v_manager.</span></span><span class="sig-name descname"><span class="pre">ModelVManager</span></span><a class="reference internal" href="_modules/disk_analyzer/stages/model_v_manager.html#ModelVManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_v_manager.ModelVManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Model Version Manager.</p>
+<p>Manages saving and loading of model versions, along with associated metadata.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.model_v_manager.ModelVManager.save_best_model">
+<span class="sig-name descname"><span class="pre">save_best_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/model_v_manager.html#ModelVManager.save_best_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_v_manager.ModelVManager.save_best_model" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.stages.model_v_manager.ModelVManager.save_model">
+<span class="sig-name descname"><span class="pre">save_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_pipeline</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/stages/model_v_manager.html#ModelVManager.save_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.stages.model_v_manager.ModelVManager.save_model" title="Link to this definition"></a></dt>
+<dd><p>Save a model along with its metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_pipeline</strong> – The model pipeline instance to save.</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

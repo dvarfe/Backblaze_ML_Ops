@@ -85,19 +85,53 @@
              
   <section id="disk-analyzer-view-package">
 <h1>disk_analyzer.view package<a class="headerlink" href="#disk-analyzer-view-package" title="Link to this heading"></a></h1>
-<section id="module-disk_analyzer.view">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-disk_analyzer.view" title="Link to this heading"></a></h2>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-disk_analyzer.view.viewer">
+<span id="disk-analyzer-view-viewer-module"></span><h2>disk_analyzer.view.viewer module<a class="headerlink" href="#module-disk_analyzer.view.viewer" title="Link to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="disk_analyzer.view.Viewer">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.view.</span></span><span class="sig-name descname"><span class="pre">Viewer</span></span><a class="reference internal" href="_modules/disk_analyzer/view.html#Viewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.view.Viewer" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="disk_analyzer.view.viewer.Viewer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">disk_analyzer.view.viewer.</span></span><span class="sig-name descname"><span class="pre">Viewer</span></span><a class="reference internal" href="_modules/disk_analyzer/view/viewer.html#Viewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.view.viewer.Viewer" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
-<dt class="sig sig-object py" id="disk_analyzer.view.Viewer.show_stats">
-<span class="sig-name descname"><span class="pre">show_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">static_stats</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic_figpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/view.html#Viewer.show_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.view.Viewer.show_stats" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="disk_analyzer.view.viewer.Viewer.make_report">
+<span class="sig-name descname"><span class="pre">make_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/disk_analyzer/view/viewer.html#Viewer.make_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.view.viewer.Viewer.make_report" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.view.viewer.Viewer.show_metrics">
+<span class="sig-name descname"><span class="pre">show_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ci</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ibs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/view/viewer.html#Viewer.show_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.view.viewer.Viewer.show_metrics" title="Link to this definition"></a></dt>
+<dd><p>Show metrics</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ci</strong> (<em>float</em>) – Concordance Index</p></li>
+<li><p><strong>ibs</strong> (<em>float</em>) – Integrated Brier Score</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="disk_analyzer.view.viewer.Viewer.show_stats">
+<span class="sig-name descname"><span class="pre">show_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">static_stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dynamic_figpath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/disk_analyzer/view/viewer.html#Viewer.show_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#disk_analyzer.view.viewer.Viewer.show_stats" title="Link to this definition"></a></dt>
+<dd><p>Show statistics of the data. Save plots of dynamic statistics by dynamic_figpath.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>static_stats</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Dictionary of calculated static statistics.</p></li>
+<li><p><strong>dynamic_figpath</strong> (<em>str</em>) – Path to the directory to save figures.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
+</section>
+<section id="module-disk_analyzer.view">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-disk_analyzer.view" title="Link to this heading"></a></h2>
 </section>
 </section>
 

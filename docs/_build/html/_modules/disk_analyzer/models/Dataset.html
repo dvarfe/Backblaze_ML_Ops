@@ -142,6 +142,18 @@
                         <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_infer_line</span><span class="p">(</span><span class="n">data_line</span><span class="p">,</span> <span class="n">id_idx</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parse_train_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_line</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">label_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">id_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">event_time_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse a line of training data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_line (List[str]): A list of strings representing a line of data.</span>
+<span class="sd">            label_idx (int): Index of the label column.</span>
+<span class="sd">            id_idx (int): Index of the ID column.</span>
+<span class="sd">            time_idx (int): Index of the time column.</span>
+<span class="sd">            event_time_idx (int): Index of the event time column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, label, and time to event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Parse the line and convert it to a tensor</span>
 
         <span class="n">data_vec</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_line</span><span class="p">))</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">id_idx</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">,</span> <span class="n">event_time_idx</span><span class="p">]]</span>
@@ -153,6 +165,18 @@
         <span class="k">return</span> <span class="n">data_line</span><span class="p">[</span><span class="n">id_idx</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">time_idx</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data_vec</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">time_to_event</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parse_score_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_line</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">label_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">id_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">event_time_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse a line of scoring data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_line (List[str]): A list of strings representing a line of data.</span>
+<span class="sd">            label_idx (int): Index of the label column.</span>
+<span class="sd">            id_idx (int): Index of the ID column.</span>
+<span class="sd">            time_idx (int): Index of the time column.</span>
+<span class="sd">            event_time_idx (int): Index of the event time column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, label, and lifetime.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data_vec</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_line</span><span class="p">))</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">id_idx</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">,</span> <span class="n">event_time_idx</span><span class="p">]]</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">data_line</span><span class="p">[</span><span class="n">label_idx</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span>
         <span class="n">lifetime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">event_time_idx</span><span class="p">])</span>
@@ -160,11 +184,29 @@
         <span class="k">return</span> <span class="n">data_line</span><span class="p">[</span><span class="n">id_idx</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">time_idx</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">data_vec</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">lifetime</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parse_infer_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_line</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">id_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse a line of inference data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_line (List[str]): A list of strings representing a line of data.</span>
+<span class="sd">            id_idx (int): Index of the ID column.</span>
+<span class="sd">            time_idx (int): Index of the time column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, and placeholders for label and time to event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data_vec</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_line</span><span class="p">))</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">id_idx</span><span class="p">,</span> <span class="n">time_idx</span><span class="p">]]</span>
 
         <span class="k">return</span> <span class="n">data_line</span><span class="p">[</span><span class="n">id_idx</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">data_line</span><span class="p">[</span><span class="n">time_idx</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">data_vec</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_split_files_for_workers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worker_info</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split files across workers to avoid duplicates.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            worker_info: Information about the current worker process.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[str]: A list of file paths assigned to the current worker.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Split files across workers to avoid duplicates</span>
 
         <span class="k">if</span> <span class="n">worker_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

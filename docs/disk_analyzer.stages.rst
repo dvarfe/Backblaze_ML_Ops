@@ -36,6 +36,14 @@ disk\_analyzer.stages.model\_scoring module
    :show-inheritance:
    :undoc-members:
 
+disk\_analyzer.stages.model\_v\_manager module
+----------------------------------------------
+
+.. automodule:: disk_analyzer.stages.model_v_manager
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

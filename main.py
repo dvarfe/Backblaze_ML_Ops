@@ -200,6 +200,11 @@ class RelAnalyzer(cmd.Cmd):
             print(v)
 
     def do_fine_tune(self, args):
+        """Fine-tune the model with preprocessed data.
+
+        Args:
+            args (str): Command-line arguments specifying the path to preprocessed data.
+        """
         fine_tune_parser = argparse.ArgumentParser()
         fine_tune_parser.add_argument(
             '-p',
@@ -274,6 +279,11 @@ class RelAnalyzer(cmd.Cmd):
         self.controller.load_model(path=args_parsed.p)
 
     def do_score_model(self, args):
+        """Score the model using specified data.
+
+        Args:
+            args (str): Path to the directory with preprocessed data.
+        """
         args_split = shlex.split(args)
         path = args_split[0]
         ci, ibs = self.controller.score_model(path)
@@ -304,6 +314,11 @@ class RelAnalyzer(cmd.Cmd):
             print(f"Error: {v}")
 
     def do_make_report(self, args):
+        """Generate a report based on model statistics.
+
+        Args:
+            args (str): Command-line arguments specifying the path to save the report.
+        """
         make_report_parser = argparse.ArgumentParser()
         make_report_parser.add_argument(
             '-p',

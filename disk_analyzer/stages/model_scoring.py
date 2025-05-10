@@ -1,13 +1,25 @@
+from typing import Tuple
 
 import pandas as pd
+import numpy as np
 from lifelines.utils import concordance_index  # type: ignore
 from survivors.metrics import ibs_remain
 
 
 class ModelScorer():
 
-    def get_ci_and_ibs(self, model, df_pred, df_gt, times):
+    def get_ci_and_ibs(self, model, df_pred:pd.DataFrame, df_gt:pd.DataFrame, times:np.ndarray) -> Tuple[float, float]:
+        """Calculate Concordance Index (CI) and Integrated Brier Score (IBS).
 
+        Args:
+            model: The trained model used for predictions.
+            df_pred (pd.DataFrame): DataFrame containing predicted survival functions.
+            df_gt (pd.DataFrame): DataFrame containing ground truth durations and event indicators.
+            times (np.ndarray): Array of time points for evaluation.
+
+        Returns:
+            Tuple[float, float]: Concordance Index (CI) and Integrated Brier Score (IBS).
+        """
         survival_test = pd.DataFrame()
         survival_test['event'] = df_gt['failure'].astype(bool)
         survival_test['duration'] = df_gt['duration']

@@ -71,24 +71,26 @@
   <h1>Source code for disk_analyzer.model_pipeline.model_pipeline</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">SGDClassifier</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">,</span> <span class="n">BATCHSIZE</span><span class="p">,</span> <span class="n">TRAIN_BATCHSIZE</span><span class="p">,</span> <span class="n">TIMES</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..models</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiskDataset</span><span class="p">,</span> <span class="n">SKLClassifier</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..stages</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrainTestSplitter</span><span class="p">,</span> <span class="n">DataPreprocessor</span><span class="p">,</span> <span class="n">ModelScorer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..models</span><span class="w"> </span><span class="kn">import</span> <span class="n">DLClassifier</span><span class="p">,</span> <span class="n">SKLClassifier</span><span class="p">,</span> <span class="n">DiskDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..stages</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrainTestSplitter</span><span class="p">,</span> <span class="n">DataPreprocessor</span><span class="p">,</span> <span class="n">ModelScorer</span><span class="p">,</span> <span class="n">ModelVManager</span>
 
 
 <div class="viewcode-block" id="ModelPipeline">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ModelPipeline</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class that incorporates all pipeline logic</span>
-<span class="sd">        Consists of the following stages:</span>
-<span class="sd">            1. Data Preprocessor: split data into train and test, preprocess data</span>
-<span class="sd">            2. Model: train and predict</span>
-<span class="sd">            3. Scoring: get metrics</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class that incorporates all pipeline logic.</span>
+
+<span class="sd">    Consists of the following stages:</span>
+<span class="sd">        1. Data Preprocessor: split data into train and test, preprocess data.</span>
+<span class="sd">        2. Model: train and predict.</span>
+<span class="sd">        3. Scoring: get metrics.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -96,18 +98,33 @@
                  <span class="n">train_test_splitter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TrainTestSplitter</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">data_preprocessor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DataPreprocessor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">model_scorer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ModelScorer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">rm_truncated_from_test</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">models_version_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ModelVManager</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">batchsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BATCHSIZE</span><span class="p">,</span>
-                 <span class="n">prep_storage_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">,</span>
-                 <span class="n">model_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+                 <span class="n">prep_storage_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the ModelPipeline class.</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            data_paths (Optional[List[str]]): Paths to data sources.</span>
+<span class="sd">            train_test_splitter (Optional[TrainTestSplitter]): Train-test splitter instance.</span>
+<span class="sd">            data_preprocessor (Optional[DataPreprocessor]): Data preprocessor instance.</span>
+<span class="sd">            model_scorer (Optional[ModelScorer]): Model scorer instance.</span>
+<span class="sd">            models_version_manager (Optional[ModelVManager]): Model version manager instance.</span>
+<span class="sd">            batchsize (int): Batch size for data processing.</span>
+<span class="sd">            prep_storage_path (str): Path to preprocessed data storage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span> <span class="o">=</span> <span class="n">batchsize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prep_storage_path</span> <span class="o">=</span> <span class="n">prep_storage_path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data_paths</span> <span class="o">=</span> <span class="n">data_paths</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__train_test_splitter</span> <span class="o">=</span> <span class="n">train_test_splitter</span> <span class="ow">or</span> <span class="n">TrainTestSplitter</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__data_preprocessor</span> <span class="o">=</span> <span class="n">data_preprocessor</span> <span class="ow">or</span> <span class="n">DataPreprocessor</span><span class="p">(</span><span class="n">storage_paths</span><span class="o">=</span><span class="n">data_paths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_test_splitter</span> <span class="o">=</span> <span class="n">train_test_splitter</span> <span class="ow">or</span> <span class="n">TrainTestSplitter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_preprocessor</span> <span class="o">=</span> <span class="n">data_preprocessor</span> <span class="ow">or</span> <span class="n">DataPreprocessor</span><span class="p">(</span><span class="n">storage_paths</span><span class="o">=</span><span class="n">data_paths</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_scorer</span> <span class="o">=</span> <span class="n">model_scorer</span> <span class="ow">or</span> <span class="n">ModelScorer</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__rm_truncated_from_test</span> <span class="o">=</span> <span class="n">rm_truncated_from_test</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_version_manager</span> <span class="o">=</span> <span class="n">models_version_manager</span> <span class="ow">or</span> <span class="n">ModelVManager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">DLClassifier</span><span class="p">,</span> <span class="n">SKLClassifier</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features_num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;CI_test&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                                                    <span class="s2">&quot;IBS_test&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                                                    <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                                                    <span class="s2">&quot;fit_time&quot;</span><span class="p">:</span> <span class="p">[]}</span>
 
 <div class="viewcode-block" id="ModelPipeline.open_data">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.open_data">[docs]</a>
@@ -126,35 +143,29 @@
 <div class="viewcode-block" id="ModelPipeline.preprocess">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.preprocess">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Preprocess data</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Preprocess data.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data_paths (pd.DataFrame): Paths to data files.</span>
+<span class="sd">            data_paths (List[str]): Paths to data files.</span>
 <span class="sd">            mode (str, optional): Whether to preprocess train/test/tune data. Defaults to &#39;train&#39;.</span>
 
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Path to the directory containing preprocessed data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Split data into train and test</span>
+        <span class="n">train_id</span><span class="p">,</span> <span class="n">test_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_test_splitter</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span><span class="n">data_paths</span><span class="p">)</span>
+
+        <span class="c1"># Open data and pass it to preprocessor</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_data</span><span class="p">(</span><span class="n">data_paths</span><span class="p">)</span>
+        <span class="n">df_train</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">train_id</span><span class="p">)]</span>
+        <span class="n">df_test</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">test_id</span><span class="p">)]</span>
+
         <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
-            <span class="c1"># Split data into train and test</span>
-            <span class="n">train_id</span><span class="p">,</span> <span class="n">test_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__train_test_splitter</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span><span class="n">data_paths</span><span class="p">)</span>
 
-            <span class="c1"># Open data and pass it to preprocessor</span>
-            <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_data</span><span class="p">(</span><span class="n">data_paths</span><span class="p">)</span>
-            <span class="n">df_train</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">train_id</span><span class="p">)]</span>
-            <span class="n">df_test</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">test_id</span><span class="p">)]</span>
+            <span class="n">df_train</span><span class="p">,</span> <span class="n">df_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_preprocessor</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span>
+                <span class="n">df_train</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_preprocessor</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">df_test</span><span class="p">)</span>
 
-            <span class="n">df_train</span><span class="p">,</span> <span class="n">df_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data_preprocessor</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span>
-                <span class="n">df_train</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data_preprocessor</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">df_test</span><span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">features_num</span> <span class="o">=</span> <span class="n">df_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
-
-            <span class="c1"># print(&#39;Save Preprocessed Data&#39;)</span>
-            <span class="c1"># for sample_name, df in zip([&#39;Train&#39;, &#39;Test&#39;], [df_train, df_test]):</span>
-            <span class="c1">#     if not os.path.exists(os.path.join(self.prep_storage_path, sample_name)):</span>
-            <span class="c1">#         os.</span>
-            <span class="c1">#     df.sort_values(by=[&#39;serial_number&#39;, &#39;time&#39;], inplace=True)</span>
-            <span class="c1">#     for i in range((df.shape[0] + self.batchsize - 1)//self.batchsize):</span>
-            <span class="c1">#         df.iloc[i*self.batchsize:(i+1)*self.batchsize].to_csv(os.path.join(</span>
-            <span class="c1">#             self.prep_storage_path, sample_name, f&#39;{str(i)}_preprocessed.csv&#39;), index=False)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">features_num</span> <span class="o">=</span> <span class="n">df_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span>
 
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Save Preprocessed Data&#39;</span><span class="p">)</span>
 
@@ -173,31 +184,62 @@
                     <span class="n">batch</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span><span class="p">:</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span><span class="p">]</span>
                     <span class="n">batch</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sample_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">_preprocessed.csv&#39;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span> <span class="ow">or</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;tune&#39;</span><span class="p">:</span>
-            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data_preprocessor</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">open_data</span><span class="p">(</span><span class="n">data_paths</span><span class="p">))</span>
+            <span class="n">df_train</span><span class="p">,</span> <span class="n">df_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_preprocessor</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span>
+                <span class="n">df_train</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_preprocessor</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">df_test</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">features_num</span> <span class="o">=</span> <span class="n">df_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Save Preprocessed Data&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">sample_name</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">df_train</span><span class="p">,</span> <span class="n">df_test</span><span class="p">]):</span>
+                <span class="n">sample_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prep_storage_path</span><span class="p">,</span> <span class="n">sample_name</span><span class="p">)</span>
+
+                <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">total_rows</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">((</span><span class="n">total_rows</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span><span class="p">):</span>
+                    <span class="n">batch</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span><span class="p">:</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">batchsize</span><span class="p">]</span>
+                    <span class="n">batch</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sample_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">_preprocessed.csv&#39;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sample_dir</span></div>
 
 
 <div class="viewcode-block" id="ModelPipeline.set_model">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.set_model">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">interface</span><span class="o">=</span><span class="s1">&#39;sklearn&#39;</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set model</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">learn_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">model_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set model.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            model : Model</span>
-<span class="sd">            interface (str, optional): Sklearn or torch. Defaults to &#39;sklearn&#39;.</span>
+<span class="sd">            model_name (str): Name of the model.</span>
+<span class="sd">            learn_params (Dict): Learning parameters for the model.</span>
+<span class="sd">            model_params (Dict): Model parameters.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model name is invalid or required parameters are missing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">interface</span> <span class="o">==</span> <span class="s1">&#39;sklearn&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">SKLClassifier</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">interface</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="k">if</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s1">&#39;logistic_regression&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">SKLClassifier</span><span class="p">(</span><span class="n">SGDClassifier</span><span class="p">(</span><span class="n">warm_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;log_loss&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">),</span> <span class="o">**</span><span class="n">learn_params</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s1">&#39;NN&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;input_dim&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_params</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_num</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;input_dim must be specified&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;input_dim&#39;</span> <span class="ow">in</span> <span class="n">model_params</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">DLClassifier</span><span class="p">(</span><span class="o">**</span><span class="n">learn_params</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">DLClassifier</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_num</span><span class="p">,</span> <span class="o">**</span><span class="n">learn_params</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid interface. Supported interfaces are &quot;sklearn&quot; and &quot;torch&quot;&#39;</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid mode. Only &quot;logistic_regression&quot; and &quot;NN&quot; are supported&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span></div>
 
 
 <div class="viewcode-block" id="ModelPipeline.fit">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.fit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fit model</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fit model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            paths (List[str]): Paths to the training data.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model is not set.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not set&quot;</span><span class="p">)</span>
@@ -205,15 +247,28 @@
 
         <span class="n">dl</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">TRAIN_BATCHSIZE</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">dl</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">dl</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_version_manager</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_stats</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_stats</span><span class="p">[</span><span class="s1">&#39;fit_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">fit_times</span></div>
 
 
 <div class="viewcode-block" id="ModelPipeline.predict">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.predict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="n">TIMES</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return predictions</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return predictions.</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            paths (List[str]): Paths to the data.</span>
+<span class="sd">            mode (str, optional): Mode of prediction. Defaults to &#39;score&#39;.</span>
+<span class="sd">            times (List[int], optional): Time points for prediction. Defaults to TIMES.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model is not fitted.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pd.DataFrame: Predictions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not fitted&quot;</span><span class="p">)</span>
 
@@ -227,9 +282,18 @@
 <div class="viewcode-block" id="ModelPipeline.score_model">
 <a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.score_model">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">times</span><span class="o">=</span><span class="n">TIMES</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return predictions</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score the model.</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            paths (List[str]): Paths to the data.</span>
+<span class="sd">            times (List[int], optional): Time points for scoring. Defaults to TIMES.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model is not fitted.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[float, float]: CI and IBS scores.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not fitted&quot;</span><span class="p">)</span>
 
@@ -240,6 +304,35 @@
         <span class="n">df_pred</span><span class="p">,</span> <span class="n">df_gt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">dl</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_scorer</span><span class="o">.</span><span class="n">get_ci_and_ibs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">df_pred</span><span class="p">,</span> <span class="n">df_gt</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ModelPipeline.save_best_model">
+<a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.save_best_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_best_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the best model based on a specific metric.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            metric (str): The metric to evaluate the best model.</span>
+<span class="sd">            path (str): Path to save the best model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_version_manager</span><span class="o">.</span><span class="n">save_best_model</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ModelPipeline.get_model_stats">
+<a class="viewcode-back" href="../../../disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.get_model_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_model_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve statistics of the model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, List[float]]: A dictionary containing model statistics.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model has not been fit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Model not fit!&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_stats</span></div>
 </div>
 
 </pre></div>

@@ -69,17 +69,20 @@
            <div itemprop="articleBody">
              
   <h1>Source code for disk_analyzer.controller.controller</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">SGDClassifier</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">int_</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..stages</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataCollector</span><span class="p">,</span> <span class="n">DataStats</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..models</span><span class="w"> </span><span class="kn">import</span> <span class="n">DLClassifier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..model_pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelPipeline</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">,</span> <span class="n">STORAGE_PATH</span><span class="p">,</span> <span class="n">TIMES</span><span class="p">,</span> <span class="n">FEATURES_NUM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">STORAGE_PATH</span><span class="p">,</span> <span class="n">TIMES</span><span class="p">,</span> <span class="n">DEFAULT_MODEL_PATH</span><span class="p">,</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">,</span> <span class="n">REPORT_PATH</span>
 
 
 <div class="viewcode-block" id="Controller">
@@ -89,14 +92,22 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Controller class.</span>
+
+<span class="sd">        Sets up the model pipeline and paths attributes for data processing and analysis.</span>
+<span class="sd">        Initially sets model_pipeline to None and creates an empty list for paths.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
 
 <div class="viewcode-block" id="Controller.collect_data">
 <a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.collect_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">collect_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Collects data from the given paths and saves it to the given location.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Collect data using the DataCollector.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Variable positional arguments to be passed to DataCollector.</span>
+<span class="sd">            **kwargs: Variable keyword arguments to be passed to DataCollector.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">DataCollector</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">collect_data</span><span class="p">()</span></div>
 
@@ -104,7 +115,10 @@
 <div class="viewcode-block" id="Controller.rebatch">
 <a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.rebatch">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">rebatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_batchsize</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Changes the batchsize of the data collected.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rebatch data with a new batch size.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_batchsize (int): The new batch size to use.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">DataCollector</span><span class="p">(</span><span class="n">paths</span><span class="o">=</span><span class="p">[],</span> <span class="n">batchsize</span><span class="o">=</span><span class="n">new_batchsize</span><span class="p">,</span>
                       <span class="n">cfgpath</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">collect_data</span><span class="p">()</span></div>
@@ -117,8 +131,8 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            storage_path (str): Path to the storage directory.</span>
-<span class="sd">            static_stats (Dict[str]): Static stats to collect</span>
-<span class="sd">            dynamic_stats (Dict[str]): Dynamic stats to collect</span>
+<span class="sd">            static_stats (List[str]): Static stats to collect</span>
+<span class="sd">            dynamic_stats (List[str]): Dynamic stats to collect</span>
 <span class="sd">            dynamic_freq (str): Frequency of dynamic stats(daily or monthly)</span>
 <span class="sd">            figpath (str): Path to save figures</span>
 
@@ -135,27 +149,85 @@
 
 <div class="viewcode-block" id="Controller.preprocess_data">
 <a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.preprocess_data">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">preprocess_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">STORAGE_PATH</span><span class="p">,</span> <span class="n">model_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;train&#39;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">preprocess_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">STORAGE_PATH</span><span class="p">,</span> <span class="n">preprocessed_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">,</span> <span class="n">model_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;train&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Preprocess data for model training or inference.</span>
+
+<span class="sd">        Finds all CSV files in the specified storage path and initializes</span>
+<span class="sd">        a ModelPipeline for data preprocessing.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            storage_path (str, optional): Path to the directory containing data files.</span>
+<span class="sd">                                          Defaults to STORAGE_PATH.</span>
+<span class="sd">            preprocessed_path (str, optional): Path to the directory to save preprocessed data.</span>
+<span class="sd">                                               Defaults to PREPROCESSOR_STORAGE.</span>
+<span class="sd">            model_mode (str, optional): Mode of preprocessing, either &#39;train&#39; or &#39;inference&#39;.</span>
+<span class="sd">                                        Defaults to &#39;train&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">paths</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">storage_path</span><span class="p">,</span> <span class="s1">&#39;*.csv&#39;</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">ModelPipeline</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">data_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">model_mode</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__is_preprocessed</span> <span class="o">=</span> <span class="kc">True</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">ModelPipeline</span><span class="p">(</span><span class="n">data_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span> <span class="n">prep_storage_path</span><span class="o">=</span><span class="n">preprocessed_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">data_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">model_mode</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Controller.update_preprocessed">
+<a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.update_preprocessed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_preprocessed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update preprocessed data with new data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_dir (str): Path to the directory containing new batched data.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model is not loaded and the default model is not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_dir</span><span class="p">,</span> <span class="s1">&#39;*.csv&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">DEFAULT_MODEL_PATH</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">DEFAULT_MODEL_PATH</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Model not loaded and default model not found&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">data_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;tune&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Controller.fit">
 <a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.fit">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;logistic_regression&#39;</span><span class="p">,</span> <span class="n">preprocessed_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PREPROCESSOR_STORAGE</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">ModelPipeline</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s1">&#39;logistic_regression&#39;</span><span class="p">:</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">SGDClassifier</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s1">&#39;log_loss&#39;</span><span class="p">,</span> <span class="n">warm_start</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">interface</span><span class="o">=</span><span class="s1">&#39;sklearn&#39;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s1">&#39;NN&#39;</span><span class="p">:</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">DLClassifier</span><span class="p">(</span><span class="n">FEATURES_NUM</span><span class="p">)</span>  <span class="c1"># TODO: fix constant</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">interface</span><span class="o">=</span><span class="s1">&#39;torch&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">preprocessed_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train a model on preprocessed data.</span>
+<span class="sd">        Supports two model types: logistic regression (sklearn) and Neural Network (torch).</span>
+<span class="sd">        Initializes the model and fits it on preprocessed training batches.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model_name (str): Name of the model to train. Supports &#39;logistic_regression&#39; or &#39;NN&#39;.</span>
+<span class="sd">            cfg (str): Path to config file with model parameters.</span>
+<span class="sd">            preprocessed_path (str): Path to preprocessed training data.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an unsupported model name is provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">model_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">learn_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s1">&#39;learn_params&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+                <span class="n">learn_params</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;learn_params&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;model_params&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+                <span class="n">model_params</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;model_params&#39;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model name must be either &#39;logistic_regression&#39; or &#39;NN&#39;&quot;</span><span class="p">)</span>
+            <span class="n">model_params</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">ModelPipeline</span><span class="p">(</span><span class="n">prep_storage_path</span><span class="o">=</span><span class="n">preprocessed_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">learn_params</span><span class="o">=</span><span class="n">learn_params</span><span class="p">,</span> <span class="n">model_params</span><span class="o">=</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="n">batches</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">preprocessed_path</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;*.csv&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">batches</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Controller.fine_tune">
+<a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.fine_tune">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fine_tune</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preprocessed_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fine-tune a model on preprocessed data.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must load model first!&#39;</span><span class="p">)</span>
         <span class="n">batches</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">preprocessed_path</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;*.csv&#39;</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">batches</span><span class="p">)</span></div>
 
@@ -178,22 +250,82 @@
 
 <div class="viewcode-block" id="Controller.score_model">
 <a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.score_model">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">score_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="n">TIMES</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">score_model</span><span class="p">([</span><span class="n">path</span><span class="p">],</span> <span class="n">times</span><span class="p">))</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">times</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">int_</span><span class="p">]</span> <span class="o">=</span> <span class="n">TIMES</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score model on test data or on specified in paths files.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            paths (Optional[List[str]], optional): List of test filepaths. If None score on test data. Defaults to None.</span>
+<span class="sd">            times (NDArray[int\_], optional): Array of time points to use for scoring. Defaults to TIMES.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">paths</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">score_paths</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">prep_storage_path</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;*.csv&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">score_paths</span> <span class="o">=</span> <span class="n">paths</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">score_model</span><span class="p">(</span><span class="n">score_paths</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Controller.open_data">
 <a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.open_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">open_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Open data from the given paths.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Combine multiple CSV files into a single pandas DataFrame.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            paths (List[str]): Paths.</span>
+<span class="sd">            paths (List[str]): List of file paths to CSV files.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            pd.DataFrame: Dataframe containing the data.</span>
+<span class="sd">            pd.DataFrame: A consolidated DataFrame containing data from all input files.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Controller.save_model">
+<a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.save_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save trained model into a file.</span>
+
+<span class="sd">        Args:Dict[str, List[float]]</span>
+<span class="sd">            path (str): Path to save the model file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Controller.load_model">
+<a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.load_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load trained model from a file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): Path to the model file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">model</span></div>
+
+
+<div class="viewcode-block" id="Controller.save_best_model">
+<a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.save_best_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_best_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the best model based on the specified metric (ci or ibs).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            metric (str): The metric to use for selecting the best model (&#39;ci&#39; or &#39;ibs&#39;).</span>
+<span class="sd">            path (str): Path to save the best model file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">save_best_model</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Controller.get_model_stats">
+<a class="viewcode-back" href="../../../disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.get_model_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_model_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get statistics of the model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, List[float]]: Dictionary with model statistics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pipeline</span><span class="o">.</span><span class="n">get_model_stats</span><span class="p">()</span></div>
 </div>
 
 </pre></div>

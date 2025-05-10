@@ -94,13 +94,19 @@
 <li class="toctree-l2"><a class="reference internal" href="disk_analyzer.controller.html#module-disk_analyzer.controller.controller">disk_analyzer.controller.controller module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller"><code class="docutils literal notranslate"><span class="pre">Controller</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.collect_data"><code class="docutils literal notranslate"><span class="pre">Controller.collect_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.fine_tune"><code class="docutils literal notranslate"><span class="pre">Controller.fine_tune()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.fit"><code class="docutils literal notranslate"><span class="pre">Controller.fit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.get_data_statistics"><code class="docutils literal notranslate"><span class="pre">Controller.get_data_statistics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.get_model_stats"><code class="docutils literal notranslate"><span class="pre">Controller.get_model_stats()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.load_model"><code class="docutils literal notranslate"><span class="pre">Controller.load_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.open_data"><code class="docutils literal notranslate"><span class="pre">Controller.open_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.predict"><code class="docutils literal notranslate"><span class="pre">Controller.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.preprocess_data"><code class="docutils literal notranslate"><span class="pre">Controller.preprocess_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.rebatch"><code class="docutils literal notranslate"><span class="pre">Controller.rebatch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.save_best_model"><code class="docutils literal notranslate"><span class="pre">Controller.save_best_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.save_model"><code class="docutils literal notranslate"><span class="pre">Controller.save_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.score_model"><code class="docutils literal notranslate"><span class="pre">Controller.score_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.controller.html#disk_analyzer.controller.controller.Controller.update_preprocessed"><code class="docutils literal notranslate"><span class="pre">Controller.update_preprocessed()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -113,9 +119,11 @@
 <li class="toctree-l2"><a class="reference internal" href="disk_analyzer.model_pipeline.html#module-disk_analyzer.model_pipeline.model_pipeline">disk_analyzer.model_pipeline.model_pipeline module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline"><code class="docutils literal notranslate"><span class="pre">ModelPipeline</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.fit"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.get_model_stats"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.get_model_stats()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.open_data"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.open_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.predict"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.preprocess"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.preprocess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.save_best_model"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.save_best_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.score_model"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.score_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="disk_analyzer.model_pipeline.html#disk_analyzer.model_pipeline.model_pipeline.ModelPipeline.set_model"><code class="docutils literal notranslate"><span class="pre">ModelPipeline.set_model()</span></code></a></li>
 </ul>
@@ -275,17 +283,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.stages.html#module-disk_analyzer.stages.model_v_manager">disk_analyzer.stages.model_v_manager module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.model_v_manager.ModelVManager"><code class="docutils literal notranslate"><span class="pre">ModelVManager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.model_v_manager.ModelVManager.save_best_model"><code class="docutils literal notranslate"><span class="pre">ModelVManager.save_best_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.stages.html#disk_analyzer.stages.model_v_manager.ModelVManager.save_model"><code class="docutils literal notranslate"><span class="pre">ModelVManager.save_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="disk_analyzer.stages.html#module-disk_analyzer.stages">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="disk_analyzer.view.html">disk_analyzer.view package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.view.html#module-disk_analyzer.view">Module contents</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.Viewer"><code class="docutils literal notranslate"><span class="pre">Viewer</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.Viewer.show_stats"><code class="docutils literal notranslate"><span class="pre">Viewer.show_stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.view.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.view.html#module-disk_analyzer.view.viewer">disk_analyzer.view.viewer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer"><code class="docutils literal notranslate"><span class="pre">Viewer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer.make_report"><code class="docutils literal notranslate"><span class="pre">Viewer.make_report()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer.show_metrics"><code class="docutils literal notranslate"><span class="pre">Viewer.show_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="disk_analyzer.view.html#disk_analyzer.view.viewer.Viewer.show_stats"><code class="docutils literal notranslate"><span class="pre">Viewer.show_stats()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="disk_analyzer.view.html#module-disk_analyzer.view">Module contents</a></li>
 </ul>
 </li>
 </ul>

@@ -1,7 +1,7 @@
 import os
 import glob
 import pickle
-from typing import Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List
 import json
 
 import pandas as pd
@@ -19,8 +19,7 @@ class Controller:
     """
 
     def __init__(self):
-        """
-        Initialize the Controller class.
+        """Initialize the Controller class.
 
         Sets up the model pipeline and paths attributes for data processing and analysis.
         Initially sets model_pipeline to None and creates an empty list for paths.
@@ -29,8 +28,7 @@ class Controller:
         self.paths = []
 
     def collect_data(self, *args, **kwargs):
-        """
-        Collect data using the DataCollector.
+        """Collect data using the DataCollector.
 
         Args:
             *args: Variable positional arguments to be passed to DataCollector.
@@ -39,11 +37,10 @@ class Controller:
         DataCollector(*args, **kwargs).collect_data()
 
     def rebatch(self, new_batchsize: int):
-        """
-        Change the batch size of collected data.
+        """Rebatch data with a new batch size.
 
         Args:
-            new_batchsize (int): The new batch size to be used for data collection.
+            new_batchsize (int): The new batch size to use.
         """
         DataCollector(paths=[], batchsize=new_batchsize,
                       cfgpath='').collect_data()
@@ -53,8 +50,8 @@ class Controller:
 
         Args:
             storage_path (str): Path to the storage directory.
-            static_stats (Dict[str]): Static stats to collect
-            dynamic_stats (Dict[str]): Dynamic stats to collect
+            static_stats (List[str]): Static stats to collect
+            dynamic_stats (List[str]): Dynamic stats to collect
             dynamic_freq (str): Frequency of dynamic stats(daily or monthly)
             figpath (str): Path to save figures
 
@@ -69,8 +66,7 @@ class Controller:
         return stats
 
     def preprocess_data(self, storage_path: str = STORAGE_PATH, preprocessed_path: str = PREPROCESSOR_STORAGE, model_mode: str = 'train'):
-        """
-        Preprocess data for model training or inference.
+        """Preprocess data for model training or inference.
 
         Finds all CSV files in the specified storage path and initializes
         a ModelPipeline for data preprocessing.
@@ -78,6 +74,8 @@ class Controller:
         Args:
             storage_path (str, optional): Path to the directory containing data files.
                                           Defaults to STORAGE_PATH.
+            preprocessed_path (str, optional): Path to the directory to save preprocessed data.
+                                               Defaults to PREPROCESSOR_STORAGE.
             model_mode (str, optional): Mode of preprocessing, either 'train' or 'inference'.
                                         Defaults to 'train'.
         """
@@ -87,7 +85,14 @@ class Controller:
         self.model_pipeline.preprocess(data_paths=paths, mode=model_mode)
 
     def update_preprocessed(self, new_dir: str):
-        """Update preprocessed data"""
+        """Update preprocessed data with new data.
+
+        Args:
+            new_dir (str): Path to the directory containing new batched data.
+
+        Raises:
+            ValueError: If the model is not loaded and the default model is not found.
+        """
         paths = glob.glob(os.path.join(new_dir, '*.csv'))
         if self.model_pipeline is None:
             if os.path.exists(DEFAULT_MODEL_PATH):
@@ -151,7 +156,7 @@ class Controller:
 
         Args:
             paths (Optional[List[str]], optional): List of test filepaths. If None score on test data. Defaults to None.
-            times (_type_, optional): _description_. Defaults to TIMES.
+            times (NDArray[int\_], optional): Array of time points to use for scoring. Defaults to TIMES.
         """
         if paths is None:
             score_paths = glob.glob(os.path.join(self.model_pipeline.prep_storage_path, 'test', '*.csv'))
@@ -171,14 +176,22 @@ class Controller:
         return pd.concat([pd.read_csv(path) for path in paths])
 
     def save_model(self, path: str):
-        """Save trained model into a file."""
+        """Save trained model into a file.
+
+        Args:Dict[str, List[float]]
+            path (str): Path to save the model file.
+        """
         if not os.path.exists(path):
             os.makedirs(os.path.dirname(path))
         with open(path, 'wb') as f:
             pickle.dump(self.model_pipeline, f)
 
     def load_model(self, path: str):
-        """Load trained model from a file."""
+        """Load trained model from a file.
+
+        Args:
+            path (str): Path to the model file.
+        """
         with open(path, 'rb') as f:
             model = pickle.load(f)
         self.model_pipeline = model
@@ -188,9 +201,14 @@ class Controller:
 
         Args:
             metric (str): The metric to use for selecting the best model ('ci' or 'ibs').
+            path (str): Path to save the best model file.
         """
-
         self.model_pipeline.save_best_model(metric, path)
 
-    def get_model_stats(self) -> Tuple[List[float], List[float]]:
+    def get_model_stats(self) -> Dict[str, List[float]]:
+        """Get statistics of the model.
+
+        Returns:
+            Dict[str, List[float]]: Dictionary with model statistics.
+        """
         return self.model_pipeline.get_model_stats()

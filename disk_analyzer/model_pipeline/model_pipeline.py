@@ -12,11 +12,12 @@ from ..stages import TrainTestSplitter, DataPreprocessor, ModelScorer, ModelVMan
 
 
 class ModelPipeline:
-    """Class that incorporates all pipeline logic
-        Consists of the following stages:
-            1. Data Preprocessor: split data into train and test, preprocess data
-            2. Model: train and predict
-            3. Scoring: get metrics
+    """Class that incorporates all pipeline logic.
+
+    Consists of the following stages:
+        1. Data Preprocessor: split data into train and test, preprocess data.
+        2. Model: train and predict.
+        3. Scoring: get metrics.
     """
 
     def __init__(self,
@@ -27,7 +28,17 @@ class ModelPipeline:
                  models_version_manager: Optional[ModelVManager] = None,
                  batchsize: int = BATCHSIZE,
                  prep_storage_path: str = PREPROCESSOR_STORAGE):
+        """Initialize the ModelPipeline class.
 
+        Args:
+            data_paths (Optional[List[str]]): Paths to data sources.
+            train_test_splitter (Optional[TrainTestSplitter]): Train-test splitter instance.
+            data_preprocessor (Optional[DataPreprocessor]): Data preprocessor instance.
+            model_scorer (Optional[ModelScorer]): Model scorer instance.
+            models_version_manager (Optional[ModelVManager]): Model version manager instance.
+            batchsize (int): Batch size for data processing.
+            prep_storage_path (str): Path to preprocessed data storage.
+        """
         self.batchsize = batchsize
         self.prep_storage_path = prep_storage_path
         self.data_paths = data_paths
@@ -54,11 +65,14 @@ class ModelPipeline:
         return pd.concat([pd.read_csv(path) for path in paths])
 
     def preprocess(self, data_paths: List[str], mode: str = 'train') -> str:
-        """Preprocess data
+        """Preprocess data.
 
         Args:
-            data_paths (pd.DataFrame): Paths to data files.
+            data_paths (List[str]): Paths to data files.
             mode (str, optional): Whether to preprocess train/test/tune data. Defaults to 'train'.
+
+        Returns:
+            str: Path to the directory containing preprocessed data.
         """
         # Split data into train and test
         train_id, test_id = self._train_test_splitter.train_test_split(data_paths)
@@ -111,11 +125,15 @@ class ModelPipeline:
         return sample_dir
 
     def set_model(self, model_name: str, learn_params: Dict, model_params: Dict):
-        """Set model
+        """Set model.
 
         Args:
-            model : Model
-            interface (str, optional): Sklearn or torch. Defaults to 'sklearn'.
+            model_name (str): Name of the model.
+            learn_params (Dict): Learning parameters for the model.
+            model_params (Dict): Model parameters.
+
+        Raises:
+            ValueError: If the model name is invalid or required parameters are missing.
         """
         if model_name == 'logistic_regression':
             self._model = SKLClassifier(SGDClassifier(warm_start=True, loss='log_loss', **model_params), **learn_params)
@@ -131,7 +149,13 @@ class ModelPipeline:
         self.model_name = model_name
 
     def fit(self, paths: List[str]):
-        """Fit model
+        """Fit model.
+
+        Args:
+            paths (List[str]): Paths to the training data.
+
+        Raises:
+            ValueError: If the model is not set.
         """
         if self._model is None:
             raise ValueError("Model not set")
@@ -145,9 +169,19 @@ class ModelPipeline:
         self.model_stats['fit_time'] = self._model.fit_times
 
     def predict(self, paths: List[str], mode: str = 'score', times=TIMES):
-        """Return predictions
-        """
+        """Return predictions.
 
+        Args:
+            paths (List[str]): Paths to the data.
+            mode (str, optional): Mode of prediction. Defaults to 'score'.
+            times (List[int], optional): Time points for prediction. Defaults to TIMES.
+
+        Raises:
+            ValueError: If the model is not fitted.
+
+        Returns:
+            pd.DataFrame: Predictions.
+        """
         if self._model is None:
             raise ValueError("Model not fitted")
 
@@ -158,9 +192,18 @@ class ModelPipeline:
         return self._model.predict(dl, times)
 
     def score_model(self, paths: List[str], times=TIMES):
-        """Return predictions
-        """
+        """Score the model.
 
+        Args:
+            paths (List[str]): Paths to the data.
+            times (List[int], optional): Time points for scoring. Defaults to TIMES.
+
+        Raises:
+            ValueError: If the model is not fitted.
+
+        Returns:
+            Tuple[float, float]: CI and IBS scores.
+        """
         if self._model is None:
             raise ValueError("Model not fitted")
 
@@ -173,9 +216,23 @@ class ModelPipeline:
         return self._model_scorer.get_ci_and_ibs(self._model, df_pred, df_gt, times)
 
     def save_best_model(self, metric: str, path: str):
+        """Save the best model based on a specific metric.
+
+        Args:
+            metric (str): The metric to evaluate the best model.
+            path (str): Path to save the best model.
+        """
         self._model_version_manager.save_best_model(metric, path)
 
     def get_model_stats(self) -> Dict[str, List[float]]:
+        """Retrieve statistics of the model.
+
+        Returns:
+            Dict[str, List[float]]: A dictionary containing model statistics.
+
+        Raises:
+            ValueError: If the model has not been fit.
+        """
         if self._model is None:
             raise ValueError('Model not fit!')
 
