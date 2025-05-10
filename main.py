@@ -308,7 +308,7 @@ class RelAnalyzer(cmd.Cmd):
         except Exception as e:
             print(f"Parsing error: {e}")
         try:
-            ci, ibs = self.controller.save_best_model(metric=args_parsed.metric, viewer=self.viewer)
+            ci, ibs = self.controller.save_best_model(metric=args_parsed.metric, path=DEFAULT_MODEL_PATH)
             viewer.show_metrics(ci, ibs)
         except ValueError as v:
             print(f"Error: {v}")
@@ -340,9 +340,37 @@ class RelAnalyzer(cmd.Cmd):
         cl_parser = argparse.ArgumentParser()
         cl_parser.add_argument('-mode',
                                type=str,
-                               choices=['inference', 'update', 'summary'],
+                               choices=['Inference', 'Update', 'Summary'],
                                required=True,
-                               help='Model mode')
+                               help='Model mode',
+                               dest='m')
+        cl_parser.add_argument('-file',
+                               type=str,
+                               dest='f',
+                               help='Path to save model predictions')
+
+        args_parsed = cl_parser.parse_args(argv[1:])
+        match args_parsed.m:
+            case 'Inference':
+                self.controller.load_model(DEFAULT_MODEL_PATH)
+                self.controller.predict(args_parsed.f)
+            case 'Update':
+                self.controller.load_model(DEFAULT_MODEL_PATH)
+                try:
+                    self.controller.fine_tune(PREPROCESSOR_STORAGE)
+                    return 0
+                except Exception as e:
+                    print(f"Error: {e}")
+                    return 1
+            case 'Summary':
+                self.controller.load_model(DEFAULT_MODEL_PATH)
+                try:
+                    stats = self.controller.get_model_stats()
+                except ValueError as v:
+                    print(f"Error: {v}")
+
+                save_path = viewer.make_report(stats=stats, path=REPORT_PATH)
+                print(f'Report saved at {save_path}')
 
     def do_exit(self, args):
         return True
@@ -353,7 +381,7 @@ if __name__ == '__main__':
         # If we work with command-line arguments we don't launch cmdloop
         controller = Controller()
         viewer = Viewer()
-        RelAnalyzer(controller, viewer).do_collect_data
+        RelAnalyzer(controller, viewer).parse_cl_args(argv=sys.argv)
     else:
         controller = Controller()
         viewer = Viewer()

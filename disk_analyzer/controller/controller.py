@@ -149,7 +149,7 @@ class Controller:
         if not os.path.exists(predictions_path):
             os.mkdir(predictions_path)
         df_pred.to_csv(f'{predictions_path}/prediction.csv', index=False)
-        print(f'Predictions saved to {predictions_path}/prediction.csv')
+        print(f'Predictions saved to {os.path.join(predictions_path, "predictions.csv")}')
 
     def score_model(self, paths: Optional[List[str]] = None, times: NDArray[int_] = TIMES):
         """Score model on test data or on specified in paths files.
