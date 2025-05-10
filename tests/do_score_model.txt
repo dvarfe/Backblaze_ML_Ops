@@ -1,2 +1,0 @@
-fit NN
-score_model Data/preprocessed/train/0_preprocessed.csv

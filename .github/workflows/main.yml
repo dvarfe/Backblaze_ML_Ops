@@ -24,7 +24,7 @@ jobs:
 
     - name: Run tests
       run: |
-        python test.py
+        pytest
 
   train:
       needs: tests
