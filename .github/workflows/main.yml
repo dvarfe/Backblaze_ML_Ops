@@ -1,0 +1,51 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        python test.py
+
+    train:
+      needs: test
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+
+        - name: Install dependencies
+          run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        
+        - name: Run training script
+          run: |
+            python main.py > training.log
+            fit NN
+            exit
+
+        - name: Upload logs
+          uses: actions/upload-artifact@v4
+          with:
+            name: training-logs
+            path: training.log
