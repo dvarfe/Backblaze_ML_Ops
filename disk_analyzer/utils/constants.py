@@ -82,7 +82,7 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_255_normalized']
 
 # Training constants
-EPOCHS = 2
+EPOCHS = 10
 TRAIN_BATCHSIZE = 10000
 FEATURES_NUM = 16
 
@@ -96,3 +96,6 @@ DEFAULT_MODEL_PATH = os.path.join(MODELS_VAULT, 'default.pkl')
 # Models versions
 MODELS_VC = '.Models_vc'
 DESCRIPTOR_NAME = 'versions_df.csv'
+
+# Final report
+REPORT_PATH = 'Reports/default_report.jpg'

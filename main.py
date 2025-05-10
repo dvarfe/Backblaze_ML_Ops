@@ -1,11 +1,13 @@
 import shlex
+import sys
 import cmd
 import argparse
 
 from disk_analyzer.controller import Controller
 from disk_analyzer.view import Viewer
 from disk_analyzer.utils.constants import (BATCHSIZE, COLLECTOR_CFG, MODEL_CFG, STORAGE_PATH, STATIC_STATS,
-                                           DYNAMIC_STATS, MODELS_VAULT, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE)
+                                           DYNAMIC_STATS, MODELS_VAULT, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE,
+                                           REPORT_PATH)
 
 
 class RelAnalyzer(cmd.Cmd):
@@ -253,7 +255,7 @@ class RelAnalyzer(cmd.Cmd):
         )
 
         args_parsed = save_model_parser.parse_args(shlex.split(args))
-        self.controller.save_model(path=args_parsed.p, name=args_parsed.n)
+        self.controller.save_model(path=args_parsed.p)
 
     def do_load_model(self, args):
         """Load model
@@ -269,7 +271,7 @@ class RelAnalyzer(cmd.Cmd):
             dest='p'
         )
         args_parsed = load_model_parser.parse_args(shlex.split(args))
-        self.controller.load_model(model_path=args_parsed.p)
+        self.controller.load_model(path=args_parsed.p)
 
     def do_score_model(self, args):
         args_split = shlex.split(args)
@@ -283,26 +285,61 @@ class RelAnalyzer(cmd.Cmd):
         Args:
             -m, --metric: Metric to use for selecting the best model ('ci' or 'ibs').
         """
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
+        save_best_parser = argparse.ArgumentParser()
+        save_best_parser.add_argument(
             '-m', '--metric',
             type=str,
             choices=['ci', 'ibs'],
             required=True,
             help='Metric to use for selecting the best model.'
         )
-        args_parsed = parser.parse_args(shlex.split(args))
+        try:
+            args_parsed = save_best_parser.parse_args(shlex.split(args))
+        except Exception as e:
+            print(f"Parsing error: {e}")
         try:
             ci, ibs = self.controller.save_best_model(metric=args_parsed.metric, viewer=self.viewer)
             viewer.show_metrics(ci, ibs)
         except ValueError as v:
             print(f"Error: {v}")
 
+    def do_make_report(self, args):
+        make_report_parser = argparse.ArgumentParser()
+        make_report_parser.add_argument(
+            '-p',
+            '--path',
+            type=str,
+            default=REPORT_PATH,
+            dest='p'
+        )
+        args_parsed = make_report_parser.parse_args(shlex.split(args))
+        try:
+            stats = self.controller.get_model_stats()
+        except ValueError as v:
+            print(f"Error: {v}")
+
+        save_path = viewer.make_report(stats=stats, path=args_parsed.p)
+        print(f'Report saved at {save_path}')
+
+    def parse_cl_args(self, argv):
+        cl_parser = argparse.ArgumentParser()
+        cl_parser.add_argument('-mode',
+                               type=str,
+                               choices=['inference', 'update', 'summary'],
+                               required=True,
+                               help='Model mode')
+
     def do_exit(self, args):
         return True
 
 
 if __name__ == '__main__':
-    controller = Controller()
-    viewer = Viewer()
-    RelAnalyzer(controller, viewer).cmdloop()
+    if len(sys.argv) > 1:
+        # If we work with command-line arguments we don't launch cmdloop
+        controller = Controller()
+        viewer = Viewer()
+        RelAnalyzer(controller, viewer).do_collect_data
+    else:
+        controller = Controller()
+        viewer = Viewer()
+        RelAnalyzer(controller, viewer).cmdloop()

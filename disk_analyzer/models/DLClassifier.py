@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import torch
 import torch.nn as nn
@@ -6,6 +6,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
+import time
 
 from ..utils.constants import EPOCHS, TIMES
 
@@ -55,6 +56,9 @@ class DLClassifier:
         self.criterion = nn.BCELoss()
         # self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self._model.parameters(), lr=lr)
+        # Loss history for report
+        self.loss: List[float] = []
+        self.fit_times: List[float] = []
 
     def fit(self, dataloader: DataLoader):
         """Incrementally trains the model using batches from the provided DataLoader.
@@ -68,6 +72,7 @@ class DLClassifier:
         self._model.train()
         for epoch in range(self.epochs):
             total_loss = 0
+            start_fit_time = time.time()
             with tqdm(dataloader, unit='batch') as tepoch:
                 for _, _, X, y, time_to_event in tepoch:
                     tepoch.set_description(f"Epoch {epoch}")
@@ -83,6 +88,9 @@ class DLClassifier:
                     self.optimizer.step()
                     total_loss += loss.item()
                     tepoch.set_postfix(loss=total_loss)
+            fit_time = time.time() - start_fit_time
+            self.fit_times.append(fit_time)
+            self.loss.append(total_loss)
 
     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Predicts survival functions for observations from the dataloader.

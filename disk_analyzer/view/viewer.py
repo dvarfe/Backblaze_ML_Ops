@@ -1,4 +1,8 @@
-from typing import Dict
+from math import ceil
+import os
+from typing import Dict, List
+
+from matplotlib import pyplot as plt
 
 
 class Viewer():
@@ -30,3 +34,21 @@ class Viewer():
         """
         print(f'Concordance Index:{ci:4.f}')
         print(f'IBS: {ibs:4.f}')
+
+    def make_report(self, stats: Dict[str, List[float]], path: str) -> str:
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+        rows = int(len(stats) ** 0.5)
+        cols = ceil(len(stats) / rows)
+        plt.figure(figsize=(20, 20))
+        fig, ax = plt.subplots(rows, cols)
+        fig.tight_layout()
+        fig.suptitle('Metrics')
+
+        for idx, stat in enumerate(stats):
+            cur_ax = ax[idx // cols, idx % cols]
+            cur_ax.plot(stats[stat])
+            cur_ax.set_title(stat)
+
+        plt.savefig(path)
+        return path

@@ -1,11 +1,13 @@
-from typing import Tuple
+from typing import Tuple, List
+import time
 
 import pandas as pd
 from torch.utils.data import DataLoader
 import numpy as np
 from tqdm import tqdm
+from sklearn.metrics import log_loss
 
-from ..utils.constants import TIMES
+from ..utils.constants import TIMES, EPOCHS
 
 
 class SKLClassifier:
@@ -16,14 +18,17 @@ class SKLClassifier:
     provides methods to predict survival functions and expected time to event for given observations.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, epochs: int = EPOCHS):
         """
         Initializes the SKLClassifier with a scikit-learn model.
 
         Args:
-            model: A scikit-learn model instance that allow to refit, for example, via refit
+            model: A scikit-learn model instance that implements partial_fit
         """
         self._model = model
+        self.epochs = epochs
+        self.loss: List[float] = []
+        self.fit_times: List[float] = []
 
     def fit(self, dataloader: DataLoader):
         """
@@ -35,13 +40,22 @@ class SKLClassifier:
             dataloader (DataLoader): A DataLoader providing batches of data as tuples:
                 (serial_numbers, obs_times, X, y, time_to_event)
         """
+        for epoch in range(self.epochs):
+            total_loss = 0
+            start_fit_time = time.time()
+            with tqdm(dataloader, unit='batch') as tepoch:
+                for _, _, X, y, time_to_event in tepoch:
+                    tepoch.set_description(f"Epoch {epoch}")
+                    X_np = X.numpy()
+                    X_np = np.concat([X, time_to_event.reshape(-1, 1)], axis=-1)
+                    y_np = np.ravel(y.numpy())
 
-        for _, _, X, y, time_to_event in dataloader:
-            X_np = X.numpy()
-            X_np = np.concat([X, time_to_event.reshape(-1, 1)], axis=-1)
-            y_np = np.ravel(y.numpy())
-
-            self._model.fit(X_np, y_np)
+                    self._model.partial_fit(X_np, y_np, classes=[0, 1])
+                    total_loss += log_loss(y_np, self._model.predict_proba(X_np))
+                    tepoch.set_postfix(loss=total_loss)
+            fit_time = time.time() - start_fit_time
+            self.fit_times.append(fit_time)
+            self.loss.append(total_loss)
 
     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Predicts survival functions for observations from the dataloader.

@@ -1,12 +1,12 @@
 import os
 import shutil
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List, Tuple, Union
 
 import pandas as pd
 from sklearn.linear_model import SGDClassifier  # type: ignore
 from torch.utils.data import DataLoader
 
-from ..utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES, MODELS_VC
+from ..utils.constants import PREPROCESSOR_STORAGE, BATCHSIZE, TRAIN_BATCHSIZE, TIMES
 from ..models import DLClassifier, SKLClassifier, DiskDataset
 from ..stages import TrainTestSplitter, DataPreprocessor, ModelScorer, ModelVManager
 
@@ -36,6 +36,11 @@ class ModelPipeline:
         self._model_scorer = model_scorer or ModelScorer()
         self._model_version_manager = models_version_manager or ModelVManager()
         self._model: Union[DLClassifier, SKLClassifier]
+        self.features_num = 0
+        self.model_stats: Dict[str, List[float]] = {"CI_test": [],
+                                                    "IBS_test": [],
+                                                    "loss": [],
+                                                    "fit_time": []}
 
     def open_data(self, paths: List[str]) -> pd.DataFrame:
         """Open data from the given paths.
@@ -115,7 +120,7 @@ class ModelPipeline:
         if model_name == 'logistic_regression':
             self._model = SKLClassifier(SGDClassifier(warm_start=True, loss='log_loss', **model_params), **learn_params)
         elif model_name == 'NN':
-            if 'input_dim' not in model_params and self.features_num is None:
+            if 'input_dim' not in model_params and self.features_num == 0:
                 raise ValueError('input_dim must be specified')
             elif 'input_dim' in model_params:
                 self._model = DLClassifier(**learn_params, **model_params)
@@ -136,6 +141,8 @@ class ModelPipeline:
 
         self._model.fit(dl)
         self._model_version_manager.save_model(self)
+        self.model_stats['loss'] = self._model.loss
+        self.model_stats['fit_time'] = self._model.fit_times
 
     def predict(self, paths: List[str], mode: str = 'score', times=TIMES):
         """Return predictions
@@ -167,3 +174,9 @@ class ModelPipeline:
 
     def save_best_model(self, metric: str, path: str):
         self._model_version_manager.save_best_model(metric, path)
+
+    def get_model_stats(self) -> Dict[str, List[float]]:
+        if self._model is None:
+            raise ValueError('Model not fit!')
+
+        return self.model_stats

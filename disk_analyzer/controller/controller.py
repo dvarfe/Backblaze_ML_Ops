@@ -3,7 +3,6 @@ import glob
 import pickle
 from typing import Optional, Tuple, List
 import json
-import shutil
 
 import pandas as pd
 from numpy.typing import NDArray
@@ -12,7 +11,7 @@ from numpy import int_
 from ..stages import DataCollector, DataStats
 from ..models import DLClassifier
 from ..model_pipeline import ModelPipeline
-from ..utils.constants import STORAGE_PATH, TIMES, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE
+from ..utils.constants import STORAGE_PATH, TIMES, DEFAULT_MODEL_PATH, PREPROCESSOR_STORAGE, REPORT_PATH
 
 
 class Controller:
@@ -192,3 +191,6 @@ class Controller:
         """
 
         self.model_pipeline.save_best_model(metric, path)
+
+    def get_model_stats(self) -> Tuple[List[float], List[float]]:
+        return self.model_pipeline.get_model_stats()

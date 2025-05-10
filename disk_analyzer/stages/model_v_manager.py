@@ -26,6 +26,8 @@ class ModelVManager:
         model_id = random.randint(1, 10000)
         batches = glob.glob(os.path.join(model_pipeline.prep_storage_path, 'test', '*.csv'))
         ci, ibs = model_pipeline.score_model(batches)
+        model_pipeline.model_stats['CI_test'].append(ci)
+        model_pipeline.model_stats['IBS_test'].append(ibs)
         print(ci, ibs)
         versions_df.loc[len(versions_df), ['id', 'model_name', 'timestamp', 'ci', 'ibs']] = [
             model_id,
