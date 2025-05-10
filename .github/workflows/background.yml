@@ -1,7 +1,7 @@
 name: Background Training
 
 on:
-  workflow-dispatch:
+  workflow_dispatch:
     inputs:
       iterations:
         required: true
