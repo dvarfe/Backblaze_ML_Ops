@@ -1,0 +1,2 @@
+load_model -p Models/deafault.pkl
+save_best_model
