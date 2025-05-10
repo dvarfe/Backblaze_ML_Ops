@@ -32,8 +32,8 @@ class Viewer():
             ci (float): Concordance Index
             ibs (float): Integrated Brier Score
         """
-        print(f'Concordance Index:{ci:4.f}')
-        print(f'IBS: {ibs:4.f}')
+        print(f'Concordance Index:{ci:4f}')
+        print(f'IBS: {ibs:4f}')
 
     def make_report(self, stats: Dict[str, List[float]], path: str) -> str:
         if not os.path.exists(os.path.dirname(path)):

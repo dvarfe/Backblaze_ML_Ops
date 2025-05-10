@@ -67,7 +67,7 @@ class RelAnalyzer(cmd.Cmd):
         )
         data_collect_parser.add_argument(
             '-s',
-            '--storagepath',
+            '--storage_path',
             type=str,
             default=STORAGE_PATH,
             dest='storage_path'
@@ -168,7 +168,7 @@ class RelAnalyzer(cmd.Cmd):
         """
         fit_parser = argparse.ArgumentParser()
         fit_parser.add_argument(
-            'm',
+            '-m',
             type=str,
             default='NN',
             choices=['logistic_regression', 'NN'],
@@ -284,9 +284,9 @@ class RelAnalyzer(cmd.Cmd):
         Args:
             args (str): Path to the directory with preprocessed data.
         """
-        args_split = shlex.split(args)
-        path = args_split[0]
-        ci, ibs = self.controller.score_model(path)
+        # args_split = shlex.split(args)
+        path = args
+        ci, ibs = self.controller.score_model([path])
         viewer.show_metrics(ci, ibs)
 
     def do_save_best_model(self, args):
