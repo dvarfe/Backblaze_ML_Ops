@@ -1,2 +1,3 @@
-fit NN
+fit -m NN
+save_model -p Models/default.pkl
 exit
