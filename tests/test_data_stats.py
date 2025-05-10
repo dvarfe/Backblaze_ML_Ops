@@ -94,7 +94,7 @@ class TestDataStats(unittest.TestCase):
         no_failures_df['failure'] = 0
         survival_rate = self.stats_analyzer.calculate_survival_rate(
             no_failures_df)
-        self.assertEqual(survival_rate, 0)
+        self.assertEqual(survival_rate, 100)
 
 
 if __name__ == '__main__':
