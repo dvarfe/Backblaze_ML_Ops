@@ -40,9 +40,7 @@ jobs:
         
         - name: Run training script
           run: |
-            python main.py > training.log
-            fit NN
-            exit
+            python main.py < Scripts/training_script.txt > training.log
 
         - name: Upload logs
           uses: actions/upload-artifact@v4
