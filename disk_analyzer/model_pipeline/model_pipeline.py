@@ -206,7 +206,6 @@ class ModelPipeline:
         """
         if self._model is None:
             raise ValueError("Model not fitted")
-        print(f'Paths: {paths}')
         ds = DiskDataset('score', paths)
 
         dl = DataLoader(ds, batch_size=TRAIN_BATCHSIZE)
