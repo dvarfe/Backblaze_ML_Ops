@@ -34,14 +34,11 @@ class TestModelPipeline(unittest.TestCase):
 
         self.assertTrue(os.path.exists(self.model_save_path))
 
-        if not os.path.exists(self.model_save_path):
-            raise ValueError("Model doesn't exist")
-
         self.controller.load_model(self.model_save_path)
 
-        # self.controller.fine_tune(preprocessed_path=self.preprocessed_path)
+        self.controller.fine_tune(preprocessed_path=self.preprocessed_path)
 
-        # self.controller.save_best_model(metric='ci', path='models/best_model.pkl')
+        self.controller.save_best_model(metric='ci', path='models/best_model.pkl')
 
 
 if __name__ == '__main__':
