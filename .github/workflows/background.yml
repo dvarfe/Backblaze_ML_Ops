@@ -27,6 +27,7 @@ jobs:
           echo "Starting iteration $i"
           python main.py -mode Update
         done
+        python main.py < Scripts/save_model_script.txt
 
     - name: Save best model
       uses: actions/upload-artifact@v4
