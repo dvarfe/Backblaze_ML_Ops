@@ -35,7 +35,7 @@ class SKLClassifier():
                 self._model.fit(X_np, y_np)
                 self._is_fitted = True
             else:
-                self._model.partial_fit(X_np, y_np)
+                self._model.fit(X_np, y_np)
 
     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Get survival function
