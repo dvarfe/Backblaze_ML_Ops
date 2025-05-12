@@ -6,7 +6,7 @@ import numpy as np
 
 # Data Collector constants
 BATCHSIZE = 500_000
-COLLECTOR_CFG = './analyzer_cfg.json'
+COLLECTOR_CFG = 'Config/analyzer_cfg.json'
 STORAGE_PATH = './Data/Data_collected'
 
 # Data Analyzer constants
@@ -60,7 +60,7 @@ DYNAMIC_STATS_DESCRIPTION = {
 }
 
 # Model Pipeline constants
-MODEL_TYPES = Union[SGDClassifier]
+MODEL_CFG = 'Config/model_cfg.json'
 
 # Data Preprocessor constants
 PREPROCESSOR_STORAGE = './Data/preprocessed'
@@ -82,13 +82,20 @@ FEATURES_TO_REMOVE = ['smart_1_normalized', 'smart_2_normalized', 'smart_3_norma
                       'smart_255_normalized']
 
 # Training constants
-EPOCHS = 20
+EPOCHS = 10
 TRAIN_BATCHSIZE = 10000
 FEATURES_NUM = 16
 
 # Scoring constants
-TIMES = np.arange(1, 160)
+TIMES = np.arange(1, 160, dtype=np.int_)
 
-# Model vault
+# Models vault
 MODELS_VAULT = 'Models'
 DEFAULT_MODEL_PATH = os.path.join(MODELS_VAULT, 'default.pkl')
+
+# Models versions
+MODELS_VC = '.Models_vc'
+DESCRIPTOR_NAME = 'versions_df.csv'
+
+# Final report
+REPORT_PATH = 'Reports/default_report.jpg'

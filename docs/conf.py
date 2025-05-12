@@ -7,6 +7,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath('..'))
 
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -36,18 +37,15 @@ autodoc_mock_imports = [
     # Core ML/DL frameworks
     "torch",
     "sklearn",
-
-    # Data processing
-    "pandas",
-    "numpy",
-
-    # MLOps tools
-    "mlflow",
+    "autograd",
+    "lifelines",
+    # "pandas",
+    # "numpy",
 
     # Utils
-    "matplotlib",
-    "seaborn",
-    "plotly",
-    "os",
-    "sys"
+    # "matplotlib",
+    # "seaborn",
+    # "plotly",
+    # "os",
+    # "sys"
 ]

@@ -1,10 +1,6 @@
-Data/
-Data_Monthly
-Data_Spark
+Config
 Prepare Data.ipynb
 Pipfile.lock
-Data_collected
-Sources
 __pycache__
 .vscode
 .mypy_cache
@@ -13,3 +9,10 @@ Predictions
 Preprocessed
 grid_search.csv
 Experiments
+.Models_vc
+Reports
+BigData
+Data/Data_collected
+Data/Data_downloaded
+Data/Data_preprocessed
+tests/Test_Data/Collected/Preprocessed

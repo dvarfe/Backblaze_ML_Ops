@@ -6,19 +6,18 @@ from numpy.typing import NDArray
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, StandardScaler  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
 
-from disk_analyzer.utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
+from ..utils.constants import BATCHSIZE, TEST_SIZE, FEATURES_TO_REMOVE, TRAIN_SAMPLES
 
 
-class TrainTestSplitter():
+class TrainTestSplitter:
     """Train-test split of data. Supports initial training and further updating of training set.
     """
 
     def __init__(self, test_size: float = TEST_SIZE) -> None:
-        """Constructor.
+        """Initialize the TrainTestSplitter class.
 
         Args:
-            storage_paths (str, optional): paths to batched data.
-            test_size (float, optional): size of test set. Defaults to TEST_SIZE.
+            test_size (float, optional): Size of the test set. Defaults to TEST_SIZE.
         """
 
         self.__test_size = test_size
@@ -28,12 +27,12 @@ class TrainTestSplitter():
         """Split data into train and test with stratification by failure.
 
         Args:
-            df (pd.DataFrame): Data
-            test_size (float, optional): Test size - value between 0 and 1. Defaults to TEST_SIZE.
-            random_state (int, optional): Random state. Defaults to 42.
+            df (pd.DataFrame): Data to split.
+            test_size (float, optional): Proportion of the dataset to include in the test split. Defaults to TEST_SIZE.
+            random_state (int, optional): Random seed for reproducibility. Defaults to 42.
 
         Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]: train and test dataframes.
+            Tuple[pd.DataFrame, pd.DataFrame]: Train and test dataframes.
         """
 
         id_events = df.groupby('serial_number')['failure'].max().reset_index()
@@ -96,7 +95,7 @@ class TrainTestSplitter():
             df (pd.DataFrame): Data
 
         Returns:
-            NDArray[np.str_]: list of serial numbers of untruncated disk
+            NDArray[str]: list of serial numbers of untruncated disk
         """
         df_previously_truncated = df[df['serial_number'].isin(
             self.train_trunc + self.test_trunc)]
@@ -166,10 +165,13 @@ class DataPreprocessor():
             5. Impute NaN values
             6. Vectorize categorical data
             7. Standardize data
+            8. Sample n random observations
+            9. Shift labels one back
+            10. Add max_lifetime column
         If new data is added, previously truncated disks may be added.
     """
 
-    def __init__(self, storage_paths: List[str], batchsize: int = BATCHSIZE, verbose: bool = True):
+    def __init__(self, storage_paths: Optional[List[str]], batchsize: int = BATCHSIZE, verbose: bool = True):
         """Constructor.
 
         Args:
@@ -267,11 +269,8 @@ class TimeTransformer():
 
         X.loc[:, 'time'] = (X[self.time_column] - X.groupby('serial_number')
                             [self.time_column].transform('min')).dt.days.astype(int)
-        # X.loc[:, self.time_column] = pd.to_datetime(X.loc[:, self.time_column]) - self.min_date
-        # X.loc[:, 'time'] = X.loc[:, self.time_column].dt.days.astype(int)
 
         X.drop(self.time_column, axis=1, inplace=True)
-        # # X = X.rename(columns={self.time_column: 'time'})
         return X
 
     def fit_transform(self, X, y=None):
@@ -372,7 +371,10 @@ class FeatureFilter():
 
 
 class NanImputer():
-    def __init__(self, fill_val = 0):
+    """Impute Nans with last known value. First value is filled with fill_val.
+    """
+
+    def __init__(self, fill_val: Dict | float = 0):
         self.fill_val = fill_val
 
     def fit(self, X, y=None):
@@ -393,6 +395,10 @@ class NanImputer():
             for key, value in self.fill_val.items():
                 X.loc[key] = X.loc[key].fillna(value)
 
+        smart_features = [col for col in X.columns if col.startswith('smart')]
+        # Fill all non-numeric values in numeric columns with zeros
+        X.loc[:, smart_features] = X[smart_features].apply(pd.to_numeric, errors='coerce').fillna(0)
+
         return X
 
     def fit_transform(self, X, y=None):
@@ -401,6 +407,9 @@ class NanImputer():
 
 
 class LabelShifter():
+    """Shift class labels one backward and label each observation with its final state.
+    """
+
     def fit_transform(self, X, y=None):
 
         X = X.sort_values(by=['serial_number', 'time'])
@@ -482,6 +491,9 @@ class CategoricalEncoder():
 
 
 class RandomSampler():
+    """Create nested samples of data.
+    """
+
     def __init__(self, n_samples: int = TRAIN_SAMPLES):
         self.n_samples = n_samples
 
@@ -504,6 +516,9 @@ class RandomSampler():
 
 
 class TimeLabeler():
+    """Get last known time of each disk.
+    """
+
     def __init__(self):
         self.event_times = pd.Series()
 

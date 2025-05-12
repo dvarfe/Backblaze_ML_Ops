@@ -8,6 +8,8 @@ Subpackages
    :maxdepth: 4
 
    disk_analyzer.controller
+   disk_analyzer.model_pipeline
+   disk_analyzer.models
    disk_analyzer.stages
    disk_analyzer.view
 
