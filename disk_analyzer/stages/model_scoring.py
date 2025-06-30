@@ -8,7 +8,7 @@ from survivors.metrics import ibs_remain
 
 class ModelScorer():
 
-    def get_ci_and_ibs(self, model, df_pred:pd.DataFrame, df_gt:pd.DataFrame, times:np.ndarray) -> Tuple[float, float]:
+    def get_ci_and_ibs(self, model, df_pred: pd.DataFrame, df_gt: pd.DataFrame, times: np.ndarray) -> Tuple[float, float]:
         """Calculate Concordance Index (CI) and Integrated Brier Score (IBS).
 
         Args:
@@ -36,3 +36,108 @@ class ModelScorer():
             times
         )
         return ci, ibs
+
+    def get_ci_and_ibs_agg(self, model, df_pred: pd.DataFrame, df_gt: pd.DataFrame, times: np.ndarray) -> Tuple[float, float]:
+        """Calculate Concordance Index (CI) and Integrated Brier Score (IBS).
+
+        Args:
+            model: The trained model used for predictions.
+            df_pred (pd.DataFrame): DataFrame containing predicted survival functions.
+            df_gt (pd.DataFrame): DataFrame containing ground truth durations and event indicators.
+            times (np.ndarray): Array of time points for evaluation.
+
+        Returns:
+            Tuple[float, float]: Concordance Index (CI) and Integrated Brier Score (IBS).
+        """
+        survival_test = pd.DataFrame()
+        survival_test['event'] = df_gt['failure'].astype(bool)
+        survival_test['duration'] = df_gt['duration']
+
+        lifetime_pred = model.get_expected_time_by_predictions(df_pred, times)
+
+        ci = concordance_index(df_gt['duration'], lifetime_pred, df_gt['failure'])
+
+        survival_estim = df_pred.drop(['serial_number', 'time'], axis='columns')
+        ibs = ibs_remain(
+            None,
+            survival_test.to_records(index=False),
+            survival_estim,
+            times
+        )
+        return ci, ibs
+
+    def get_ci_and_ibs_agg(self, model, df_pred: pd.DataFrame, df_gt: pd.DataFrame, times: np.ndarray) -> Tuple[float, float]:
+        """Calculate Concordance Index (CI) and Integrated Brier Score (IBS).
+
+        Args:
+            model: The trained model used for predictions.
+            df_pred (pd.DataFrame): DataFrame containing predicted survival functions.
+            df_gt (pd.DataFrame): DataFrame containing ground truth durations and event indicators.
+            times (np.ndarray): Array of time points for evaluation.
+
+        Returns:
+            Tuple[float, float]: Concordance Index (CI) and Integrated Brier Score (IBS).
+        """
+        survival_test = pd.DataFrame()
+        survival_test['event'] = df_gt['failure'].astype(bool)
+        survival_test['duration'] = df_gt['duration']
+
+        lifetime_pred = model.get_expected_time_by_predictions(df_pred, times)
+
+        ci = concordance_index(df_gt['duration'], lifetime_pred, df_gt['failure'])
+
+        survival_estim = df_pred.drop(['serial_number', 'time'], axis='columns')
+        ibs = ibs_remain(
+            None,
+            survival_test.to_records(index=False),
+            survival_estim,
+            times
+        )
+        return ci, ibs
+
+    def bal_ibs_remain(self, survival_train, survival_test, estimate, times, axis=-1):
+        """ IBS with equal impact of each event type and partial observation with controlled quantity """
+        ibs_event = ibs_remain(survival_train, survival_test[survival_test["event"]],
+                               estimate[survival_test["event"]], times, axis=axis)
+        ibs_cens = ibs_remain(survival_train, survival_test[~survival_test["event"]],
+                              estimate[~survival_test["event"]], times, axis=axis)
+        return (ibs_event + ibs_cens)/2
+
+    def get_ci_ibs_ibs_bal(self, model, df_pred: pd.DataFrame, df_gt: pd.DataFrame, times: np.ndarray, axis=-1) -> Tuple[float, float, float]:
+        """Calculate Concordance Index (CI) and Integrated Brier Score (IBS).
+
+        Args:
+            model: The trained model used for predictions.
+            df_pred (pd.DataFrame): DataFrame containing predicted survival functions.
+            df_gt (pd.DataFrame): DataFrame containing ground truth durations and event indicators.
+            times (np.ndarray): Array of time points for evaluation.
+
+        Returns:
+            Tuple[float, float, float]: Concordance Index (CI), Integrated Brier Score (IBS) and balanced IBS.
+        """
+        survival_test = pd.DataFrame()
+        survival_test['event'] = df_gt['failure'].astype(bool)
+        survival_test['duration'] = df_gt['duration']
+
+        lifetime_pred = model.get_expected_time_by_predictions(df_pred, times)
+
+        ci = concordance_index(df_gt['duration'], lifetime_pred, df_gt['failure'])
+
+        survival_estim = df_pred.drop(['serial_number', 'time'], axis='columns')
+        ibs = ibs_remain(
+            None,
+            survival_test.to_records(index=False),
+            survival_estim,
+            times,
+            axis=axis
+        )
+
+        ibs_bal = self.bal_ibs_remain(
+            None,
+            survival_test.to_records(index=False),
+            survival_estim,
+            times,
+            axis=axis
+        )
+
+        return ci, ibs, ibs_bal

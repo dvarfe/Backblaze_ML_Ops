@@ -47,10 +47,10 @@ class SKLClassifier:
                 for _, _, X, y, time_to_event in tepoch:
                     tepoch.set_description(f"Epoch {epoch}")
                     X_np = X.numpy()
-                    X_np = np.concat([X, time_to_event.reshape(-1, 1)], axis=-1)
+                    X_np = np.concatenate([X, time_to_event.reshape(-1, 1)], axis=-1)
                     y_np = np.ravel(y.numpy())
-
-                    self._model.partial_fit(X_np, y_np, classes=[0, 1])
+                    # Уже не partial_fit, потому что LogReg не умеет partial_fit
+                    self._model.fit(X_np, y_np)
                     total_loss += log_loss(y_np, self._model.predict_proba(X_np))
                     tepoch.set_postfix(loss=total_loss)
             fit_time = time.time() - start_fit_time
@@ -92,7 +92,7 @@ class SKLClassifier:
             # Repeat each observation in batch len(times) times
             expanded_X = np.repeat(X.reshape(X.shape[0], -1, X.shape[1]), len(times), axis=1)
             expanded_times = np.repeat(times.reshape(1, -1, 1), batch_size, axis=0)
-            data_extended = np.concat([expanded_X, expanded_times], axis=-1)
+            data_extended = np.concatenate([expanded_X, expanded_times], axis=-1)
 
             hazards = self._model.predict_proba(data_extended.reshape(
                 batch_size * len(times), -1))[:, 1]  # Flatten batches

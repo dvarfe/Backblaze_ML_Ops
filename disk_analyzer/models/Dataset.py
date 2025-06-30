@@ -10,18 +10,22 @@ from ..utils.constants import TIMES
 
 
 class DiskDataset(IterableDataset):
-    def __init__(self, mode: str, file_paths: List[str], shuffle_files: bool = True, times: np.ndarray = TIMES):
+    def __init__(self, mode: str, file_paths: List[str], shuffle_files: bool = True, times: np.ndarray = TIMES, to_cens_time_list: List[int] = [], to_term_time_list: List[int] = []):
         """DiskDataset constructor.
 
         Args:
             mode (str): Can be train, score or infer.
             root_dir (str): Directory containing the CSV files. Defaults to PREPROCESSOR_STORAGE.
             shuffle_files (bool, optional): _description_. Defaults to True.
+            to_cens_time_list (List[int]): Timeshifts to past to generate new events for.
+            to_term_time_list (List[int]): Timeshifts to future to generate new events for.
         """
         self._mode = mode
         self._shuffle_files = shuffle_files
         self._file_paths = file_paths
         self.times = times
+        self.to_cens_time_list = to_cens_time_list
+        self.to_term_time_list = to_term_time_list
 
         self._len = 0
         for file_path in self._file_paths:
@@ -59,7 +63,9 @@ class DiskDataset(IterableDataset):
                     if self._mode == 'train':
                         if data_line[event_time_idx] == data_line[time_idx]:
                             continue
-                        yield self._parse_train_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
+                        observs = self._parse_train_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
+                        for observ in observs:
+                            yield observ
                     elif self._mode == 'score':
                         # We shouldn't use last observation in chain
                         if data_line[event_time_idx] == data_line[time_idx]:
@@ -68,7 +74,7 @@ class DiskDataset(IterableDataset):
                     elif self._mode == 'infer':
                         yield self._parse_infer_line(data_line, id_idx, time_idx)
 
-    def _parse_train_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
+    def _parse_train_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> List[Tuple[str, int, torch.Tensor, bool, int]]:
         """Parse a line of training data.
 
         Args:
@@ -83,13 +89,26 @@ class DiskDataset(IterableDataset):
         """
         # Parse the line and convert it to a tensor
 
-        data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
+        data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [
+            id_idx, time_idx, event_time_idx, label_idx]]
         cur_time = int(data_line[time_idx])
         event_time = int(data_line[event_time_idx])
         time_to_event = event_time - cur_time
         # data_vec += [time_to_event]
         y = data_line[label_idx] == '1'
-        return data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event
+        if y:
+            extended_list = [[data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event]]
+            for time in self.to_cens_time_list:
+                if time_to_event - time <= 0:
+                    break
+                extended_list.append([data_line[id_idx], int(data_line[time_idx]),
+                                     torch.tensor(data_vec), 0, time_to_event - time])
+            for time in self.to_term_time_list:
+                extended_list.append([data_line[id_idx], int(data_line[time_idx]),
+                                     torch.tensor(data_vec), 1, time_to_event + time])
+            return extended_list
+        else:
+            return [[data_line[id_idx], int(data_line[time_idx]), torch.tensor(data_vec), y, time_to_event]]
 
     def _parse_score_line(self, data_line: List[str], label_idx: int, id_idx: int, time_idx: int, event_time_idx: int) -> Tuple[str, int, torch.Tensor, bool, int]:
         """Parse a line of scoring data.
@@ -104,7 +123,8 @@ class DiskDataset(IterableDataset):
         Returns:
             Tuple[str, int, torch.Tensor, bool, int]: Parsed data including ID, time, features, label, and lifetime.
         """
-        data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [id_idx, time_idx, event_time_idx]]
+        data_vec = [float(data_line[i]) for i in range(len(data_line)) if i not in [
+            id_idx, time_idx, event_time_idx, label_idx]]
         y = data_line[label_idx] == '1'
         lifetime = int(data_line[event_time_idx])
 

@@ -16,6 +16,7 @@ class ClassifierArchitecture(nn.Module):
         super(ClassifierArchitecture, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
+            # nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
@@ -72,6 +73,7 @@ class DLClassifier:
         self._model.train()
         for epoch in range(self.epochs):
             total_loss = 0
+            step = 0
             start_fit_time = time.time()
             with tqdm(dataloader, unit='batch') as tepoch:
                 for _, _, X, y, time_to_event in tepoch:
@@ -86,7 +88,8 @@ class DLClassifier:
                     loss = self.criterion(outputs, y)
                     loss.backward()
                     self.optimizer.step()
-                    total_loss += loss.item()
+                    step += 1
+                    total_loss = (1 - 1/step)*total_loss + loss.item() / step
                     tepoch.set_postfix(loss=total_loss)
             fit_time = time.time() - start_fit_time
             self.fit_times.append(fit_time)
