@@ -1,9 +1,9 @@
-from typing import Tuple
+from typing import Tuple, Set
 
 import pandas as pd
 import numpy as np
 from lifelines.utils import concordance_index  # type: ignore
-from survivors.metrics import ibs_remain
+from survivors.metrics import ibs_remain, iauc
 
 
 class ModelScorer():
@@ -141,3 +141,57 @@ class ModelScorer():
         )
 
         return ci, ibs, ibs_bal
+
+    def get_metrics(self, model, df_pred: pd.DataFrame, df_gt: pd.DataFrame, times: np.ndarray, metrics: Set[str], axis=-1, df_train=None):
+
+        if df_train is not None:
+            survival_train = pd.DataFrame()
+            survival_train['event'] = df_gt['failure'].astype(bool)
+            survival_train['duration'] = df_gt['duration']
+
+        survival_test = pd.DataFrame()
+        survival_test['event'] = df_gt['failure'].astype(bool)
+        survival_test['duration'] = df_gt['duration']
+
+        lifetime_pred = model.get_expected_time_by_predictions(df_pred, times)
+
+        ci = concordance_index(df_gt['duration'], lifetime_pred, df_gt['failure'])
+
+        survival_estim = df_pred.drop(['serial_number', 'time'], axis='columns')
+        ibs = ibs_remain(
+            None,
+            survival_test.to_records(index=False),
+            survival_estim,
+            times,
+            axis=axis
+        )
+
+        ibs_bal = self.bal_ibs_remain(
+            None,
+            survival_test.to_records(index=False),
+            survival_estim,
+            times,
+            axis=axis
+        )
+        if df_train is not None:
+            iauc_score = iauc(
+                survival_train,
+                survival_test.to_records(index=False),
+                survival_estim,
+                times,
+            axis=axis
+        )
+
+        metrics_dict = {}
+        if 'ci' in metrics:
+            metrics_dict['ci'] = ci
+        if 'ibs' in metrics:
+            metrics_dict['ibs'] = ibs
+        if 'ibs_bal' in metrics:
+            metrics_dict['ibs_bal'] = ibs_bal
+        if 'iauc' in metrics:
+            if df_train is None:
+                raise ValueError("df_train must be provided to compute iauc")
+            metrics_dict['iauc'] = iauc_score
+
+        return metrics_dict

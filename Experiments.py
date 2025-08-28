@@ -22,24 +22,29 @@ from disk_analyzer.models.Net import MAX_CLIP
 
 np.random.seed(42)
 
-SCHEMA = {'train_samples': [],
-          'test_samples': [],
-          'method': [],
-          'hidden_dim': [],
-          'ci_train_same_size': [],
-          'ci_train_max_size': [],
-          'ci_test': [],
-          'ibs_train_same_size': [],
-          'ibs_train_max_size': [],
-          'ibs_test': [],
-          'ibs_bal_train_same_size': [],
-          'ibs_bal_train_max_size': [],
-          'ibs_bal_test': [],
-          'train_time': [],
-          'test_time': [],
-          'error': [],
-          'error_text': [],
-          'model_id': []}
+METRICS_LIST = {'ci', 'ibs', 'ibs_bal', 'iauc'}
+
+
+def make_schema(metrics_list):
+    schema = {
+        'train_samples': [],
+        'test_samples': [],
+        'method': [],
+        'hidden_dim': [],
+        'train_time': [],
+        'test_time': [],
+        'error': [],
+        'error_text': [],
+        'model_id': []
+    }
+    for metric in metrics_list:
+        schema[f'{metric}_train_same_size'] = []
+        schema[f'{metric}_train_max_size'] = []
+        schema[f'{metric}_test'] = []
+    return schema
+
+
+SCHEMA = make_schema(METRICS_LIST)
 
 EXP_NUM = 52
 BASE_RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
@@ -60,10 +65,12 @@ SCORE_METRIC = 'ibs'
 PATIENCE = 10
 MIN_DELTA = 0.001
 
+
 TRAIN_BATCHSIZE = 512
 SCORE_BATCHSIZE = 512
 TIMES = np.arange(0, 730)  # 729 - max duration in 2016, 2017
 TRAIN_TIMES = TIMES[0::10]
+
 
 HPARAMS = {
     'exp_num': EXP_NUM,
@@ -144,6 +151,9 @@ if __name__ == "__main__":
     )
 
     scorer = ModelScorer()
+    df_train_max = pd.read_csv(f'Preprocessed/{max(TRAIN_GRID)}_train_preprocessed.csv')
+    df_train_max['duration'] = df_train_max['max_lifetime'] - df_train_max['time']
+    df_train_max = df_train_max['duration', 'failure']
 
     for train_samples in TRAIN_GRID:
         print(f'Начало обработки {train_samples} наблюдений')
@@ -168,19 +178,14 @@ if __name__ == "__main__":
                 i += 1
 
                 statistics = copy.deepcopy(SCHEMA)
-                statistics['train_samples'] = train_samples
+                statistics['train_samples'] = [train_samples]
                 statistics['test_samples'] = [None]
                 statistics['method'] = [method]
-                statistics['hidden_dim'] = h_dim
-                statistics['ci_train_same_size'] = [None]
-                statistics['ci_train_max_size'] = [None]
-                statistics['ci_test'] = [None]
-                statistics['ibs_train_same_size'] = [None]
-                statistics['ibs_train_max_size'] = [None]
-                statistics['ibs_test'] = [None]
-                statistics['ibs_bal_train_same_size'] = [None]
-                statistics['ibs_bal_train_max_size'] = [None]
-                statistics['ibs_bal_test'] = [None]
+                statistics['hidden_dim'] = [h_dim]
+                for metric in METRICS_LIST:
+                    statistics[f'{metric}_train_same_size'] = [None]
+                    statistics[f'{metric}_train_max_size'] = [None]
+                    statistics[f'{metric}_test'] = [None]
                 statistics['train_time'] = [None]
                 statistics['test_time'] = [None]
                 statistics['error'] = [0]
@@ -211,30 +216,30 @@ if __name__ == "__main__":
                     dataset=DiskDataset('score', [f'Preprocessed/{train_samples}_train_preprocessed.csv']),
                     batch_size=SCORE_BATCHSIZE)
                 df_train_predictions, df_train_gt = model.predict(dl_train_score, TIMES)
-                statistics['ci_train_same_size'], \
-                    statistics['ibs_train_same_size'], \
-                    statistics['ibs_bal_train_same_size'] = scorer.get_ci_ibs_ibs_bal(
-                        model, df_train_predictions, df_train_gt, TIMES)
+                train_metrics = scorer.get_metrics(
+                    model, df_train_predictions, df_train_gt, TIMES,
+                    metrics=METRICS_LIST,
+                    df_train=df_train_gt
+                )
+                for metric in METRICS_LIST:
+                    statistics[f'{metric}_train_same_size'] = [train_metrics.get(metric)]
 
                 df_train_max_predictions, df_train_max_gt = model.predict(dl_score_max, TIMES)
-                statistics['ci_train_max_size'], \
-                    statistics['ibs_train_max_size'], \
-                    statistics['ibs_bal_train_max_size'] = scorer.get_ci_ibs_ibs_bal(
-                        model, df_train_max_predictions, df_train_max_gt, TIMES)
+                train_max_metrics = scorer.get_metrics(
+                    model, df_train_max_predictions, df_train_max_gt, TIMES,
+                    metrics=METRICS_LIST,
+                    df_train=df_train_max_gt
+                )
+                for metric in METRICS_LIST:
+                    statistics[f'{metric}_train_max_size'] = [train_max_metrics.get(metric)]
 
                 HPARAMS['n_train'] = train_samples
-                metrics = {
-                    'ci/train_same': statistics['ci_train_same_size'],
-                    'ci/train_max': statistics['ci_train_max_size'],
 
-                    'ibs/train_same': statistics['ibs_train_same_size'],
-                    'ibs/train_max': statistics['ibs_train_max_size'],
-
-                    'ibs_bal/train_same': statistics['ibs_bal_train_same_size'],
-                    'ibs_bal/train_max': statistics['ibs_bal_train_max_size'],
-
-                    'time/train': statistics['train_time'],
-                }
+                metrics = {}
+                for metric in METRICS_LIST:
+                    metrics[f'{metric}/train_same'] = statistics.get(f'{metric}_train_same_size', [None])[0]
+                    metrics[f'{metric}/train_max'] = statistics.get(f'{metric}_train_max_size', [None])[0]
+                metrics['time/train'] = statistics['train_time']
 
                 for test_samples in TEST_GRID:
                     time_test_start = time.time()
@@ -247,20 +252,29 @@ if __name__ == "__main__":
                             'score', [f'Preprocessed/{train_samples}_{test_samples}_test_preprocessed.csv']),
                         batch_size=SCORE_BATCHSIZE)
                     df_test_pred, df_test_pred_gt = model.predict(dl_test_score, TIMES)
-                    cur_statistics['ci_test'], \
-                        cur_statistics['ibs_test'], \
-                        cur_statistics['ibs_bal_test'] = scorer.get_ci_ibs_ibs_bal(
-                            model, df_test_pred, df_test_pred_gt, TIMES)
+                    test_metrics = scorer.get_metrics(
+                        model, df_test_pred, df_test_pred_gt, TIMES,
+                        metrics=METRICS_LIST,
+                        df_train=df_test_pred_gt
+                    )
+                    for metric in METRICS_LIST:
+                        cur_statistics[f'{metric}_test'] = [test_metrics.get(metric)]
 
                     cur_statistics['test_time'] = time.time() - time_test_start
-                    print(
-                        f'ci_train_same: {cur_statistics["ci_train_same_size"]}, ibs_train_same: {cur_statistics["ibs_train_same_size"]}')
-                    print(
-                        f'ci_test: {cur_statistics["ci_test"]}, ibs_test: {cur_statistics["ibs_test"]}, test_samples: {test_samples}')
+                    # Print all metrics for train and test
+                    print(f"Train metrics for {train_samples} samples:")
+                    for metric in METRICS_LIST:
+                        print(
+                            f"  {metric}_train_same_size: {cur_statistics.get(f'{metric}_train_same_size', [None])[0]}")
+                    print(f"Test metrics for {test_samples} samples:")
+                    for metric in METRICS_LIST:
+                        print(f"  {metric}_test: {cur_statistics.get(f'{metric}_test', [None])[0]}")
 
-                    metrics[f'ci/test_{test_samples}'] = cur_statistics['ci_test']
-                    metrics[f'ibs/test_{test_samples}'] = cur_statistics['ibs_test']
-                    metrics[f'ibs_bal/test_{test_samples}'] = cur_statistics['ibs_bal_test']
+                    # Update tensorboard metrics
+                    for metric in METRICS_LIST:
+                        metrics[f'{metric}/train_same'] = cur_statistics.get(f'{metric}_train_same_size', [None])[0]
+                        metrics[f'{metric}/train_max'] = cur_statistics.get(f'{metric}_train_max_size', [None])[0]
+                        metrics[f'{metric}/test_{test_samples}'] = cur_statistics.get(f'{metric}_test', [None])[0]
 
                     write_dict(RES_FILENAME, cur_statistics)
 
