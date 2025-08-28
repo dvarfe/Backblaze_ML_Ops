@@ -1,20 +1,26 @@
 # Программа, которая обучает модели, перебирает разные параметры и замеряет качество на тесте
-from disk_analyzer.stages import ModelScorer
-from disk_analyzer.models.Dataset import DiskDataset
-from disk_analyzer.models.SKLearnClassifier import SKLClassifier
-from disk_analyzer.models.DLClassifier import DLClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import SGDClassifier
-from torch.utils.data import DataLoader
-import numpy as np
-import pandas as pd
-import sys
+import torch
 import time
 import pickle
 import copy
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+import shutil
+import os  # noqa
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # noqa
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"  # noqa
 
+import numpy as np
+import pandas as pd
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+
+
+from disk_analyzer.stages import ModelScorer
+from disk_analyzer.models.Dataset import DiskDataset
+from disk_analyzer.models.DLClassifier import DLClassifier
+from disk_analyzer.models.SurvPredictor import SurvPredictor
+from disk_analyzer.models.Net import MAX_CLIP
+
+np.random.seed(42)
 
 SCHEMA = {'train_samples': [],
           'test_samples': [],
@@ -35,6 +41,56 @@ SCHEMA = {'train_samples': [],
           'error_text': [],
           'model_id': []}
 
+EXP_NUM = 52
+BASE_RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
+RES_FILENAME = os.path.join(BASE_RES_FOLDER, "grid_search.csv")
+MODELS_FOLDER = os.path.join(BASE_RES_FOLDER, "models")
+LOG_DIR = os.path.join(BASE_RES_FOLDER, "logs")
+TRAIN_GRID = [1, 2, 5, 10, 15, 20, 30, 40, 50]
+TEST_GRID = [1, 10]
+HIDDEN_DIM_GRID = [2048]
+TO_CENS_SHIFT = []  # range(1, 200, 25)
+TO_TERM_SHIFT = []  # range(1, 200, 25)
+CENS_PROB = -1
+METHODS = ['SP']
+EPOCHS = 100
+LR = 5e-6
+EARLY_STOPPING = True
+SCORE_METRIC = 'ibs'
+PATIENCE = 10
+MIN_DELTA = 0.001
+
+TRAIN_BATCHSIZE = 512
+SCORE_BATCHSIZE = 512
+TIMES = np.arange(0, 730)  # 729 - max duration in 2016, 2017
+TRAIN_TIMES = TIMES[0::10]
+
+HPARAMS = {
+    'exp_num': EXP_NUM,
+    'test_grid': str(TEST_GRID),
+    'hidden_dim_grid': str(HIDDEN_DIM_GRID),
+    'to_cens_shift': str(TO_CENS_SHIFT),
+    'to_term_shift': str(TO_TERM_SHIFT),
+    'cens_prob': CENS_PROB,
+    'epochs': EPOCHS,
+    'lr': LR,
+    'early_stopping': EARLY_STOPPING,
+    'patience': PATIENCE,
+    'min_delta': MIN_DELTA,
+    "max_clip": MAX_CLIP,
+    'train_bs': TRAIN_BATCHSIZE,
+    'score_bs': SCORE_BATCHSIZE,
+    'times': f"{TIMES.min()} - {TIMES.max()}",
+    'train_times_step': 10
+}
+
+
+FILES_TO_SAVE = ["Experiments.py",
+                 "disk_analyzer/models/Net.py",
+                 "disk_analyzer/models/Dataset.py",
+                 "disk_analyzer/models/SurvPredictor.py",
+                 ]
+
 
 def write_dict(filename, dict_to_save):
     df = pd.DataFrame(dict_to_save)
@@ -47,34 +103,45 @@ def create_res_file(filename):
     df.to_csv(filename, index=False)
 
 
+def create_description_file():
+    desc_path = os.path.join(BASE_RES_FOLDER, "Description.txt")
+    os.mknod(desc_path)
+    with open(desc_path, "w") as f:
+        for key in HPARAMS:
+            f.write(f"{key} = {HPARAMS[key]}\n")
+
+
 def save_model(model, model_id):
-    with open(f'Artifacts\Exp_28\models/{model_id}_model.pkl', 'wb') as f:
+    with open(os.path.join(MODELS_FOLDER, f"{model_id}_model.pkl"), 'wb') as f:
         pickle.dump(model, f)
 
 
-RES_FILENAME = 'Artifacts\Exp_28\grid_search.csv'
-TRAIN_GRID = [1, 2, 5, 20, 30, 40, 50, 10, 15]
-TEST_GRID = [1, 10]
-HIDDEN_DIM_GRID = [1024]
-TO_CENS_SHIFT = [10, 20, 30]
-TO_TERM_SHIFT = []
-# METHODS = {'LogReg': SKLClassifier(SGDClassifier(loss='log_loss',  warm_start=True)), 'NN':DLClassifier(21)}
-METHODS = ['NN']
+def copy_code():
+    code_dir = os.path.join(BASE_RES_FOLDER, "code")
+    os.mkdir(code_dir)
+    for file in FILES_TO_SAVE:
+        shutil.copy(file, code_dir)
 
-TRAIN_BATCHSIZE = 10000
-SCORE_BATCHSIZE = 10000
-TIMES = np.arange(0, 730)  # 729 - max duration in 2016, 2017
 
-if __name__ == "__main__":
-    # Для скоринга мы берём неаугментированные данные
+def init_experiments_folder():
+    if not os.path.exists(MODELS_FOLDER):
+        os.makedirs(MODELS_FOLDER)
     if os.path.exists(RES_FILENAME):
         raise ValueError('Path exists!')
     create_res_file(RES_FILENAME)
+    create_description_file()
+    copy_code()
+
+
+if __name__ == "__main__":
+
+    init_experiments_folder()
     i = 0
 
     dl_score_max = DataLoader(
         dataset=DiskDataset('score', [f'Preprocessed/{max(TRAIN_GRID)}_train_preprocessed.csv']),
-        batch_size=SCORE_BATCHSIZE)
+        batch_size=SCORE_BATCHSIZE,
+    )
 
     scorer = ModelScorer()
 
@@ -83,12 +150,21 @@ if __name__ == "__main__":
         time_start = time.time()
         dl_train = DataLoader(
             dataset=DiskDataset('train', [f'Preprocessed/{train_samples}_train_preprocessed.csv'],
-                                to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT),
+                                to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
+            batch_size=TRAIN_BATCHSIZE)
+
+        # Open Dataloader for validation during train
+        dl_val = DataLoader(
+            dataset=DiskDataset('score', [f'Preprocessed/{train_samples}_1_test_preprocessed.csv'],
+                                to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
             batch_size=TRAIN_BATCHSIZE)
         for method in METHODS:
             for h_dim in HIDDEN_DIM_GRID:
                 time_train_start = time.time()
                 print(f'method={method}, hidden_dim={h_dim}')
+                cur_run = f"{method}_{h_dim}_{train_samples}"
+                cur_log_dir = os.path.join(LOG_DIR, cur_run)
+                writer = SummaryWriter(cur_log_dir)
                 i += 1
 
                 statistics = copy.deepcopy(SCHEMA)
@@ -111,13 +187,21 @@ if __name__ == "__main__":
                 statistics['error_text'] = ['']
                 statistics['model_id'] = [str(i)+f'_{method}']
 
-                model = DLClassifier(20, hidden_dim=h_dim, epochs=50)
+                if method == "NN":
+                    model = DLClassifier(28, hidden_dim=h_dim, epochs=EPOCHS, lr=LR)
+                elif method == "SP":
+                    model = SurvPredictor(28, hidden_dim=h_dim, epochs=EPOCHS, lr=LR)
+                # model = SKLClassifier(SGDClassifier(loss='log_loss',  warm_start=True))
                 try:
-                    model.fit(dl_train)
+                    if method == "NN":
+                        model.fit(dl_train, writer)
+                    elif method == "SP":
+                        model.fit(dl_train, times=TRAIN_TIMES, val_dataloader=dl_val, early_stopping=EARLY_STOPPING,
+                                  score_metric=SCORE_METRIC, patience=PATIENCE, min_delta=MIN_DELTA, writer=writer)
                 except Exception as e:
                     statistics['error'] = 1
                     statistics['error_text'] = ['FIT_ERROR$' + str(e)]
-                    write_dict('grid_search.csv', statistics)
+                    write_dict(RES_FILENAME, statistics)
                     continue
                 print('Model is fit!')
 
@@ -138,6 +222,20 @@ if __name__ == "__main__":
                     statistics['ibs_bal_train_max_size'] = scorer.get_ci_ibs_ibs_bal(
                         model, df_train_max_predictions, df_train_max_gt, TIMES)
 
+                HPARAMS['n_train'] = train_samples
+                metrics = {
+                    'ci/train_same': statistics['ci_train_same_size'],
+                    'ci/train_max': statistics['ci_train_max_size'],
+
+                    'ibs/train_same': statistics['ibs_train_same_size'],
+                    'ibs/train_max': statistics['ibs_train_max_size'],
+
+                    'ibs_bal/train_same': statistics['ibs_bal_train_same_size'],
+                    'ibs_bal/train_max': statistics['ibs_bal_train_max_size'],
+
+                    'time/train': statistics['train_time'],
+                }
+
                 for test_samples in TEST_GRID:
                     time_test_start = time.time()
 
@@ -156,9 +254,17 @@ if __name__ == "__main__":
 
                     cur_statistics['test_time'] = time.time() - time_test_start
                     print(
+                        f'ci_train_same: {cur_statistics["ci_train_same_size"]}, ibs_train_same: {cur_statistics["ibs_train_same_size"]}')
+                    print(
                         f'ci_test: {cur_statistics["ci_test"]}, ibs_test: {cur_statistics["ibs_test"]}, test_samples: {test_samples}')
+
+                    metrics[f'ci/test_{test_samples}'] = cur_statistics['ci_test']
+                    metrics[f'ibs/test_{test_samples}'] = cur_statistics['ibs_test']
+                    metrics[f'ibs_bal/test_{test_samples}'] = cur_statistics['ibs_bal_test']
 
                     write_dict(RES_FILENAME, cur_statistics)
 
+                writer.add_hparams(HPARAMS, metrics, run_name=os.path.dirname(
+                    os.path.realpath(__file__)) + os.sep + cur_log_dir)
                 save_model(model, str(i)+f'_{method}')
-    print(f'Обработка {train_samples} завершена за {time.time() - time_start} секунд')
+        print(f'Обработка {train_samples} завершена за {time.time() - time_start} секунд')

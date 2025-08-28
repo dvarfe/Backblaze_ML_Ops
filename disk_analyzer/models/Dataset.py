@@ -1,16 +1,27 @@
-import random
 from typing import Tuple, List, Generator
 from itertools import islice, cycle
 
 import torch
 from torch.utils.data import IterableDataset, get_worker_info
 import numpy as np
+import pandas as pd
 
 from ..utils.constants import TIMES
 
+torch.manual_seed(42)
+np.random.seed(42)
+
 
 class DiskDataset(IterableDataset):
-    def __init__(self, mode: str, file_paths: List[str], shuffle_files: bool = True, times: np.ndarray = TIMES, to_cens_time_list: List[int] = [], to_term_time_list: List[int] = []):
+    def __init__(self,
+                 mode: str,
+                 file_paths: List[str],
+                 shuffle_files: bool = True,
+                 times: np.ndarray = TIMES,
+                 to_cens_time_list: List[int] = [],
+                 to_term_time_list: List[int] = [],
+                 cens_prob: float = -1,
+                 max_buffer_size: int = 5000):
         """DiskDataset constructor.
 
         Args:
@@ -19,6 +30,7 @@ class DiskDataset(IterableDataset):
             shuffle_files (bool, optional): _description_. Defaults to True.
             to_cens_time_list (List[int]): Timeshifts to past to generate new events for.
             to_term_time_list (List[int]): Timeshifts to future to generate new events for.
+            cens_prob (float): probability of censoring in data. Defaults to -1, which means no over/downsampling
         """
         self._mode = mode
         self._shuffle_files = shuffle_files
@@ -27,11 +39,17 @@ class DiskDataset(IterableDataset):
         self.to_cens_time_list = to_cens_time_list
         self.to_term_time_list = to_term_time_list
 
+        # Buffers for censored and terminal observations
+        self.cens_prob = cens_prob
+        self.cens_buf = []
+        self.term_buf = []
+
         self._len = 0
         for file_path in self._file_paths:
-            with open(file_path, 'r') as f:
-                f.readline()
-                self._len += sum(1 for _ in f)
+            df = pd.read_csv(file_path)
+            term = df['failure'].sum()
+            self._len += df.shape[0] + term * (len(self.to_cens_time_list) +
+                                               len(self.to_term_time_list)) - len(df[df['time'] == df['max_lifetime']])
 
     def __len__(self):
         """Returns the total number of observations in the dataset."""
@@ -46,28 +64,50 @@ class DiskDataset(IterableDataset):
         file_paths = self._split_files_for_workers(worker_info)
 
         if self._shuffle_files:
-            random.shuffle(file_paths)
+            np.random.shuffle(file_paths)
 
         # Get data from files
         for file_path in file_paths:
             with open(file_path, 'r') as f:
-                # Skip header
-                header = f.readline().strip().split(',')
+                lines = f.readlines()
+                header = lines[0].strip().split(',')
+                lines = lines[1:]
+                np.random.shuffle(lines)
+
                 id_idx = header.index('serial_number')
                 time_idx = header.index('time')
                 if self._mode != 'infer':
                     label_idx = header.index('failure')
                     event_time_idx = header.index('max_lifetime')
-                for line in f:
+                for line in lines:
                     data_line = line.strip().split(',')
                     if self._mode == 'train':
                         if data_line[event_time_idx] == data_line[time_idx]:
                             continue
                         observs = self._parse_train_line(data_line, label_idx, id_idx, time_idx, event_time_idx)
-                        for observ in observs:
-                            yield observ
+                        if self.cens_prob >= 0:
+                            for observ in observs:
+                                _, _, _, y, _ = observ
+
+                                if y:
+                                    if len(self.term_buf) >= self.max_buffer_size:
+                                        self.term_buf.pop(0)  # удаляем самый старый
+                                    self.term_buf.append(observ)
+
+                                else:
+                                    if len(self.cens_buf) >= self.max_buffer_size:
+                                        self.cens_buf.pop(0)
+                                    self.cens_buf.append(observ)
+
+                            while self.term_buf and self.cens_buf:
+                                if np.random.random() < self.cens_prob:
+                                    yield self.cens_buf.pop(0)
+                                else:
+                                    yield self.term_buf.pop(0)
+                        else:
+                            for observ in observs:
+                                yield observ
                     elif self._mode == 'score':
-                        # We shouldn't use last observation in chain
                         if data_line[event_time_idx] == data_line[time_idx]:
                             continue
                         yield self._parse_score_line(data_line, label_idx, id_idx, time_idx, event_time_idx)

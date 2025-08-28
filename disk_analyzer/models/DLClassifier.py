@@ -1,31 +1,21 @@
 from typing import Optional, Tuple, List
+import time
 
 import torch
 import torch.nn as nn
-from tqdm import tqdm
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
-import time
+from tqdm import tqdm
 
 from ..utils.constants import EPOCHS, TIMES
+from .Net import ClassifierArchitecture
 
-
-class ClassifierArchitecture(nn.Module):
-    def __init__(self, input_dim: int, hidden_dim: int = 64):
-        super(ClassifierArchitecture, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            # nn.Dropout(0.5),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        return self.net(x)
+torch.manual_seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
+np.random.seed(42)
 
 
 class DLClassifier:
@@ -41,7 +31,12 @@ class DLClassifier:
         optimizer (torch.optim.Optimizer): Optimizer for training the model.
     """
 
-    def __init__(self, input_dim: int, hidden_dim: int = 64, lr: float = 1e-3, epochs: int = EPOCHS, device: Optional[str] = None):
+    def __init__(self,
+                 input_dim: int,
+                 hidden_dim: int = 64,
+                 lr: float = 1e-3,
+                 epochs: int = EPOCHS,
+                 device: Optional[str] = None):
         """Configure hyperparameters
         Args:
             input_dim (int): Number of input features for the model.
@@ -51,49 +46,67 @@ class DLClassifier:
             device (Optional[str], optional): Computation device to use ('cuda' or 'cpu').
                 If None, automatically selects 'cuda' if available, otherwise 'cpu'.
         """
+
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        self._model = ClassifierArchitecture(input_dim, hidden_dim).to(self.device)
+        self._model = nn.DataParallel(ClassifierArchitecture(input_dim, hidden_dim).to(self.device))
         self.epochs = epochs
-        self.criterion = nn.BCELoss()
-        # self.criterion = nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self._model.parameters(), lr=lr)
-        # Loss history for report
+        # self.criterion = nn.BCELoss()
+        self.criterion = nn.MSELoss()
+        self.optimizer = torch.optim.AdamW(self._model.parameters(), lr=lr)
+
         self.loss: List[float] = []
         self.fit_times: List[float] = []
+        self.best_loss = float('inf')
 
-    def fit(self, dataloader: DataLoader):
-        """Incrementally trains the model using batches from the provided DataLoader.
-
-        Each batch is converted to numpy arrays of features and target labels.
-
-        Args:
-            dataloader (DataLoader): A DataLoader providing batches of data as tuples:
-                (serial_numbers, obs_times, X, y, time_to_event)
-        """
+    def fit(self,
+            dataloader: DataLoader,
+            writer: Optional[SummaryWriter] = None):
         self._model.train()
-        for epoch in range(self.epochs):
-            total_loss = 0
-            step = 0
-            start_fit_time = time.time()
-            with tqdm(dataloader, unit='batch') as tepoch:
-                for _, _, X, y, time_to_event in tepoch:
-                    tepoch.set_description(f"Epoch {epoch}")
-                    X = X.to(self.device).float()
-                    time_to_event = time_to_event.to(self.device).int().unsqueeze(1)
-                    X = torch.concat([X, time_to_event], dim=-1)
-                    y = y.squeeze().to(self.device).float().unsqueeze(1)
+        iter = 0
 
-                    self.optimizer.zero_grad()
-                    outputs = self._model(X)
+        for epoch in range(self.epochs):
+            epoch_loss = 0
+            epoch_iter = 0
+            start_time = time.time()
+
+            with tqdm(dataloader, unit='batch') as tepoch:
+                iter += 1
+                epoch_iter += 1
+                for batch_idx, (_, _, X, y, time_to_event) in enumerate(tepoch):
+                    # Prepare data
+                    X = X.to(self.device).float()
+                    y = y.to(self.device).float().unsqueeze(1)
+                    time_to_event = time_to_event.to(self.device).int().unsqueeze(1)
+
+                    # Forward pass
+                    outputs = self._model(X, time_to_event)
                     loss = self.criterion(outputs, y)
+
+                    # Backward pass
+                    self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
-                    step += 1
-                    total_loss = (1 - 1/step)*total_loss + loss.item() / step
-                    tepoch.set_postfix(loss=total_loss)
-            fit_time = time.time() - start_fit_time
-            self.fit_times.append(fit_time)
-            self.loss.append(total_loss)
+
+                    # Log batch metrics if writer exists
+                    if writer is not None:
+                        writer.add_scalar(
+                            'Loss/train_batch',
+                            loss.item(),
+                            iter
+                        )
+
+                    epoch_loss += loss.item()
+                    tepoch.set_postfix(loss=loss.item())
+
+            avg_loss = epoch_loss / epoch_iter
+            epoch_time = time.time() - start_time
+            self.loss.append(avg_loss)
+            self.fit_times.append(epoch_time)
+
+            # Log epoch metrics if writer exists
+            if writer is not None:
+                writer.add_scalar('Loss/train_epoch', avg_loss, epoch)
+                writer.add_scalar('Time/epoch', epoch_time, epoch)
 
     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Predicts survival functions for observations from the dataloader.
@@ -135,9 +148,8 @@ class DLClassifier:
                 # Expand each observation on times
                 expanded_X = X.unsqueeze(1).expand(-1, n_times, -1)  # Repeat each observation in batch len(times) times
                 expanded_times = times_tensor.reshape(1, -1, 1).expand(batch_size, -1, -1)
-                data_extended = torch.cat([expanded_X, expanded_times], dim=-1)
-
-                hazards = self._model(data_extended.view(batch_size * len(times), -1))  # Flatten batches
+                hazards = self._model(expanded_X.reshape(batch_size * len(times), -1),
+                                      expanded_times.reshape(batch_size * len(times), -1))  # Flatten batches
                 hazards = hazards.view(batch_size, n_times)  # Get vector of predictions for each batch
                 surv_probs = torch.exp(-hazards.cumsum(dim=1))
 

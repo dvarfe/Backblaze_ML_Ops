@@ -9,6 +9,8 @@ from sklearn.metrics import log_loss
 
 from ..utils.constants import TIMES, EPOCHS
 
+np.random.seed(42)
+
 
 class SKLClassifier:
     """
@@ -44,15 +46,17 @@ class SKLClassifier:
             total_loss = 0
             start_fit_time = time.time()
             with tqdm(dataloader, unit='batch') as tepoch:
+                step = 0
                 for _, _, X, y, time_to_event in tepoch:
+                    step += 1
                     tepoch.set_description(f"Epoch {epoch}")
                     X_np = X.numpy()
                     X_np = np.concatenate([X, time_to_event.reshape(-1, 1)], axis=-1)
                     y_np = np.ravel(y.numpy())
                     # Уже не partial_fit, потому что LogReg не умеет partial_fit
-                    self._model.fit(X_np, y_np)
-                    total_loss += log_loss(y_np, self._model.predict_proba(X_np))
-                    tepoch.set_postfix(loss=total_loss)
+                    self._model.partial_fit(X_np, y_np, classes=[0, 1])
+                    total_loss += log_loss(y_np, self._model.predict_proba(X_np), labels=[0, 1])
+                    tepoch.set_postfix(loss=total_loss/step)
             fit_time = time.time() - start_fit_time
             self.fit_times.append(fit_time)
             self.loss.append(total_loss)

@@ -1,16 +1,24 @@
 # Программа, которая обучает модели и перебирает разные параметры
 import copy
 import pickle
-import numpy as np
 import time
+
+import os  # noqa
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # noqa
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"  # noqa
+
+import shutil
+from typing import List
+import pandas as pd
+import numpy as np
+
 from disk_analyzer.stages.model_scoring import ModelScorer
 from torch.utils.data import DataLoader
 from disk_analyzer.models.Dataset import DiskDataset
 from Experiments import TIMES, TRAIN_BATCHSIZE
 from PredictionsAggregator import PredictionsAggregator
-import pandas as pd
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+np.random.seed(42)
 
 
 def write_dict(filename, dict_to_save):
@@ -49,17 +57,46 @@ def sample_first_observations(df, sample_grid):
     for first_n in sample_grid:
         df_train_sampled = df.groupby('serial_number').head(max(sample_grid)).groupby('serial_number').tail(first_n)
         df_train_sampled = df_train_sampled.drop_duplicates().sort_values(
-            by=['serial_number', 'time'])  # .reset_index(drop=True)
+            by=['serial_number', 'time'])
         dict_of_all_samples[first_n] = df_train_sampled
     return dict_of_all_samples
 
 
 DATASET_TRAIN_SAMPLES = 30
-MODEL_TRAIN_SAMPLES = 10
+MODEL_TRAIN_SAMPLES = 20
 SAMPLE_GRID = np.arange(1, 10)
-RESPATH = f'Artifacts/Exp_22/Agg_{DATASET_TRAIN_SAMPLES}_{MODEL_TRAIN_SAMPLES}_{max(SAMPLE_GRID)}.csv'
+EXP_NUM = 49
+BASE_EXP_NUM = 46  # Exp number from which fitted models are taken
+RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
+MODELS_FOLDER = os.path.join(RES_FOLDER, "models")
+RES_FILENAME = os.path.join(
+    RES_FOLDER, f"Agg_{DATASET_TRAIN_SAMPLES}_{MODEL_TRAIN_SAMPLES}_{max(SAMPLE_GRID)}.csv")
 TEST_GRID = [10]
-MODELS_SIZE = [128, 512]
+MODELS_SIZE = [2048]
+
+
+def get_models_from_exp(base_exp_num: int) -> List[str]:
+    base_exp_folder = os.path.join("Artifacts", f'Exp_{base_exp_num}', f'models')
+    return [os.path.join(base_exp_folder, m) for m in os.listdir(base_exp_folder) if m.endswith(".pkl")]
+
+
+def copy_models(models_path: List[str], dest_folder: str):
+    for model in models_path:
+        if not os.path.exists(model):
+            raise ValueError("Model doesn't exist")
+        shutil.copy(model, dest_folder)
+
+
+def init_experiments_folder(base_exp_num):
+    if os.path.exists(RES_FILENAME):
+        raise ValueError('Path exists!')
+    if not os.path.exists(MODELS_FOLDER):
+        os.makedirs(MODELS_FOLDER)
+    models_path = get_models_from_exp(base_exp_num)
+    copy_models(models_path, MODELS_FOLDER)
+    create_res_file(RES_FILENAME)
+    shutil.copy(f"Artifacts/Exp_{BASE_EXP_NUM}/grid_search.csv", RES_FOLDER)
+
 
 if __name__ == "__main__":
     """
@@ -69,43 +106,25 @@ if __name__ == "__main__":
     с помощью sample_first_observation.
     Эти кусочки уже агрегируем, передавая их в pred_agg.
     """
-    grid_search = pd.read_csv('Artifacts/Exp_22\grid_search.csv')
+
+    init_experiments_folder(BASE_EXP_NUM)
+
+    grid_search = pd.read_csv(f'{RES_FOLDER}/grid_search.csv')
     grid_search = grid_search[(grid_search['train_samples'] == MODEL_TRAIN_SAMPLES) & (grid_search['error'] != 1)]
-    create_res_file(RESPATH)
+
     models = grid_search[grid_search['hidden_dim'].isin(MODELS_SIZE)]['model_id'].unique()
     for test_samples in TEST_GRID:
-        df_test = pd.read_csv(f'Preprocessed/{DATASET_TRAIN_SAMPLES}_{test_samples}_test_preprocessed.csv')
+        # test_path = f'Preprocessed/{DATASET_TRAIN_SAMPLES}_{test_samples}_test_preprocessed.csv'
+        test_path = f'test_30_more_10.csv'
+        df_test = pd.read_csv(test_path)
         # Выкидываем последние наблюдения в каждой серии
         df_test = df_test[df_test['time'] != df_test['max_lifetime']]
         df_test = df_test.sort_values(by=['serial_number', 'time'])
         dl_test = DataLoader(
             dataset=DiskDataset(
-                'score', [f'Preprocessed/{DATASET_TRAIN_SAMPLES}_{test_samples}_test_preprocessed.csv']),
+                'score', [test_path]),
             batch_size=TRAIN_BATCHSIZE)
 
-        # aggregators_dict = {
-        #     "t_dist": {
-        #         "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
-        #         "1": PredictionsAggregator(mode='t_dist', weight=1),
-        #         "10": PredictionsAggregator(mode='t_dist', weight=10),
-        #         "25": PredictionsAggregator(mode='t_dist', weight=25),
-        #         "50": PredictionsAggregator(mode='t_dist', weight=50),
-        #         "100": PredictionsAggregator(mode='t_dist', weight=100),
-        #         "1000": PredictionsAggregator(mode='t_dist', weight=1000)
-        #     }
-        # }
-
-        # aggregators_dict = {
-        #     "geom": {
-        #         "0.01": PredictionsAggregator(mode='geom', weight=0.01),
-        #         "0.1": PredictionsAggregator(mode='geom', weight=0.1),
-        #         "0.3": PredictionsAggregator(mode='geom', weight=0.3),
-        #         "0.5": PredictionsAggregator(mode='geom', weight=0.5),
-        #         "0.7": PredictionsAggregator(mode='geom', weight=0.7),
-        #         "0.9": PredictionsAggregator(mode='geom', weight=0.9),
-        #         "0.99": PredictionsAggregator(mode='geom', weight=0.99)
-        #     }
-        # }
         aggregators_dict = {
             "n_dist": {
                 "0.01": PredictionsAggregator(mode='n_dist', weight=0.01),
@@ -115,13 +134,35 @@ if __name__ == "__main__":
                 "0.7": PredictionsAggregator(mode='n_dist', weight=0.7),
                 "0.9": PredictionsAggregator(mode='n_dist', weight=0.9),
                 "0.99": PredictionsAggregator(mode='n_dist', weight=0.99)
-            }
+            },
+            "t_dist": {
+                "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
+                "1": PredictionsAggregator(mode='t_dist', weight=1),
+                "10": PredictionsAggregator(mode='t_dist', weight=10),
+                "25": PredictionsAggregator(mode='t_dist', weight=25),
+                "50": PredictionsAggregator(mode='t_dist', weight=50),
+                "100": PredictionsAggregator(mode='t_dist', weight=100),
+                "1000": PredictionsAggregator(mode='t_dist', weight=1000)
+            },
+            # "prob_dist": {
+            #     "-1": PredictionsAggregator(mode='prob_dist'),
+            # },
+            "geom": {
+                "0.01": PredictionsAggregator(mode='geom', weight=0.01),
+                "0.1": PredictionsAggregator(mode='geom', weight=0.1),
+                "0.3": PredictionsAggregator(mode='geom', weight=0.3),
+                "0.5": PredictionsAggregator(mode='geom', weight=0.5),
+                "0.7": PredictionsAggregator(mode='geom', weight=0.7),
+                "0.9": PredictionsAggregator(mode='geom', weight=0.9),
+                "0.99": PredictionsAggregator(mode='geom', weight=0.99)
+            },
         }
+
         any_dict_key = list(aggregators_dict.keys())[0]
         any_dict_key_key = list(aggregators_dict[any_dict_key].keys())[0]
         times_extended = aggregators_dict[any_dict_key][any_dict_key_key].get_extended_times(df_test, times=TIMES)
         for model_id in models:
-            model = load_model(f"Artifacts/Exp_22/models/{model_id}_model.pkl")
+            model = load_model(f"{MODELS_FOLDER}/{model_id}_model.pkl")
             X_pred, X_gt = model.predict(dl_test, times=times_extended)
             X_pred = X_pred.sort_values(by=['serial_number', 'time'])
             X_gt = X_gt.sort_values(by=['serial_number', 'time'])
@@ -151,7 +192,7 @@ if __name__ == "__main__":
                 cur_X_pred = sampled_predictions[n_samples]
                 cur_timeshift = cur_X_pred.groupby('serial_number')['time'].transform('max') - cur_X_pred['time']
                 # Оставляем для метрики последнее наблюдение к которому агрегируемся. Вообще-то это можно сделать один раз.
-                # Просто занести в sample... но потом всё потом. TODO
+                # Просто занести в sample... но потом, всё потом. TODO
                 cur_X_gt = X_gt.loc[cur_X_pred.index, :]
                 cur_X_gt = cur_X_gt[cur_X_gt['time'] == cur_X_gt.groupby('serial_number')['time'].transform('max')]
 
@@ -168,5 +209,40 @@ if __name__ == "__main__":
                         cur_statistics['ci_train'], cur_statistics['ibs_train'], cur_statistics['ibs_bal_train'] = scorer.get_ci_ibs_ibs_bal(
                             model, df_pred=aggregated_pred, df_gt=cur_X_gt, times=TIMES)
 
-                        write_dict(RESPATH, cur_statistics)
+                        write_dict(RES_FILENAME, cur_statistics)
                 print(f'Обработка {n_samples} завершена за {time.time() - time_start} секунд')
+
+        # aggregators_dict = {
+        #     "t_dist": {
+        #         "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
+        #         "1": PredictionsAggregator(mode='t_dist', weight=1),
+        #         "10": PredictionsAggregator(mode='t_dist', weight=10),
+        #         "25": PredictionsAggregator(mode='t_dist', weight=25),
+        #         "50": PredictionsAggregator(mode='t_dist', weight=50),
+        #         "100": PredictionsAggregator(mode='t_dist', weight=100),
+        #         "1000": PredictionsAggregator(mode='t_dist', weight=1000)
+        #     }
+        # }
+
+        # aggregators_dict = {
+        #     "geom": {
+        #         "0.01": PredictionsAggregator(mode='geom', weight=0.01),
+        #         "0.1": PredictionsAggregator(mode='geom', weight=0.1),
+        #         "0.3": PredictionsAggregator(mode='geom', weight=0.3),
+        #         "0.5": PredictionsAggregator(mode='geom', weight=0.5),
+        #         "0.7": PredictionsAggregator(mode='geom', weight=0.7),
+        #         "0.9": PredictionsAggregator(mode='geom', weight=0.9),
+        #         "0.99": PredictionsAggregator(mode='geom', weight=0.99)
+        #     }
+        # }
+        # aggregators_dict = {
+        #     "n_dist": {
+        #         "0.01": PredictionsAggregator(mode='n_dist', weight=0.01),
+        #         "0.1": PredictionsAggregator(mode='n_dist', weight=0.1),
+        #         "0.3": PredictionsAggregator(mode='n_dist', weight=0.3),
+        #         "0.5": PredictionsAggregator(mode='n_dist', weight=0.5),
+        #         "0.7": PredictionsAggregator(mode='n_dist', weight=0.7),
+        #         "0.9": PredictionsAggregator(mode='n_dist', weight=0.9),
+        #         "0.99": PredictionsAggregator(mode='n_dist', weight=0.99)
+        #     }
+        # }

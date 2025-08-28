@@ -374,7 +374,7 @@ class NanImputer():
     """Impute Nans with last known value. First value is filled with fill_val.
     """
 
-    def __init__(self, fill_val: Dict | float = 0):
+    def __init__(self, fill_val: float = 0):
         self.fill_val = fill_val
 
     def fit(self, X, y=None):
