@@ -48,21 +48,23 @@ class ClassifierArchitecture(nn.Module):
         self.softplus = LearnableSoftplus()
         self.net = nn.Sequential(
             nn.Linear(input_dim + t_embed_dim, hidden_dim),
+            # nn.Linear(input_dim + 1, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1),
-            # nn.Sigmoid(),
+            nn.Sigmoid(),
             # LearnableSoftplus(),
-            LearnableScaleParam(),
+            # LearnableScaleParam(),
         )
 
         self.init_weights()
 
     def forward(self, x, t):
         x_ = torch.cat([x, self.t_embed(t)], dim=-1)
+        # x_ = torch.cat([x, t], dim=-1)
         y = self.net(x_)
         return torch.clip(y, 0, MAX_CLIP)
 

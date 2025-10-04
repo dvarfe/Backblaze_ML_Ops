@@ -18,6 +18,7 @@ from disk_analyzer.stages import ModelScorer
 from disk_analyzer.models.Dataset import DiskDataset
 from disk_analyzer.models.DLClassifier import DLClassifier
 from disk_analyzer.models.SurvPredictor import SurvPredictor
+from disk_analyzer.models.Cox import CoxTimeVaryingEstimator
 from disk_analyzer.models.Net import MAX_CLIP
 
 np.random.seed(42)
@@ -46,7 +47,8 @@ def make_schema(metrics_list):
 
 SCHEMA = make_schema(METRICS_LIST)
 
-EXP_NUM = 52
+EXP_NUM = 66
+DATA_FOLDER = "Preprocessed_new"
 BASE_RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
 RES_FILENAME = os.path.join(BASE_RES_FOLDER, "grid_search.csv")
 MODELS_FOLDER = os.path.join(BASE_RES_FOLDER, "models")
@@ -57,7 +59,7 @@ HIDDEN_DIM_GRID = [2048]
 TO_CENS_SHIFT = []  # range(1, 200, 25)
 TO_TERM_SHIFT = []  # range(1, 200, 25)
 CENS_PROB = -1
-METHODS = ['SP']
+METHODS = ['Cox']
 EPOCHS = 100
 LR = 5e-6
 EARLY_STOPPING = True
@@ -88,7 +90,8 @@ HPARAMS = {
     'train_bs': TRAIN_BATCHSIZE,
     'score_bs': SCORE_BATCHSIZE,
     'times': f"{TIMES.min()} - {TIMES.max()}",
-    'train_times_step': 10
+    'train_times_step': 10,
+    'methods': str(METHODS)
 }
 
 
@@ -146,26 +149,25 @@ if __name__ == "__main__":
     i = 0
 
     dl_score_max = DataLoader(
-        dataset=DiskDataset('score', [f'Preprocessed/{max(TRAIN_GRID)}_train_preprocessed.csv']),
+        dataset=DiskDataset('score', [f'{DATA_FOLDER}/{max(TRAIN_GRID)}_train_preprocessed.csv']),
         batch_size=SCORE_BATCHSIZE,
     )
 
     scorer = ModelScorer()
-    df_train_max = pd.read_csv(f'Preprocessed/{max(TRAIN_GRID)}_train_preprocessed.csv')
+    df_train_max = pd.read_csv(f'{DATA_FOLDER}/{max(TRAIN_GRID)}_train_preprocessed.csv')
     df_train_max['duration'] = df_train_max['max_lifetime'] - df_train_max['time']
-    df_train_max = df_train_max['duration', 'failure']
-
+    df_train_max = df_train_max[['duration', 'failure', 'time']]
     for train_samples in TRAIN_GRID:
         print(f'Начало обработки {train_samples} наблюдений')
         time_start = time.time()
         dl_train = DataLoader(
-            dataset=DiskDataset('train', [f'Preprocessed/{train_samples}_train_preprocessed.csv'],
+            dataset=DiskDataset('train', [f'{DATA_FOLDER}/{train_samples}_train_preprocessed.csv'],
                                 to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
             batch_size=TRAIN_BATCHSIZE)
 
         # Open Dataloader for validation during train
         dl_val = DataLoader(
-            dataset=DiskDataset('score', [f'Preprocessed/{train_samples}_1_test_preprocessed.csv'],
+            dataset=DiskDataset('score', [f'{DATA_FOLDER}/{train_samples}_1_test_preprocessed.csv'],
                                 to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
             batch_size=TRAIN_BATCHSIZE)
         for method in METHODS:
@@ -196,6 +198,8 @@ if __name__ == "__main__":
                     model = DLClassifier(28, hidden_dim=h_dim, epochs=EPOCHS, lr=LR)
                 elif method == "SP":
                     model = SurvPredictor(28, hidden_dim=h_dim, epochs=EPOCHS, lr=LR)
+                elif method == "Cox":
+                    model = CoxTimeVaryingEstimator(penalizer=0.01, l1_ratio=0.1)
                 # model = SKLClassifier(SGDClassifier(loss='log_loss',  warm_start=True))
                 try:
                     if method == "NN":
@@ -203,6 +207,8 @@ if __name__ == "__main__":
                     elif method == "SP":
                         model.fit(dl_train, times=TRAIN_TIMES, val_dataloader=dl_val, early_stopping=EARLY_STOPPING,
                                   score_metric=SCORE_METRIC, patience=PATIENCE, min_delta=MIN_DELTA, writer=writer)
+                    elif method == "Cox":
+                        model.fit(dl_train)
                 except Exception as e:
                     statistics['error'] = 1
                     statistics['error_text'] = ['FIT_ERROR$' + str(e)]
@@ -213,13 +219,13 @@ if __name__ == "__main__":
                 statistics['train_time'] = time.time() - time_train_start
 
                 dl_train_score = DataLoader(
-                    dataset=DiskDataset('score', [f'Preprocessed/{train_samples}_train_preprocessed.csv']),
+                    dataset=DiskDataset('score', [f'{DATA_FOLDER}/{train_samples}_train_preprocessed.csv']),
                     batch_size=SCORE_BATCHSIZE)
                 df_train_predictions, df_train_gt = model.predict(dl_train_score, TIMES)
                 train_metrics = scorer.get_metrics(
                     model, df_train_predictions, df_train_gt, TIMES,
                     metrics=METRICS_LIST,
-                    df_train=df_train_gt
+                    df_train=df_train_max
                 )
                 for metric in METRICS_LIST:
                     statistics[f'{metric}_train_same_size'] = [train_metrics.get(metric)]
@@ -228,7 +234,7 @@ if __name__ == "__main__":
                 train_max_metrics = scorer.get_metrics(
                     model, df_train_max_predictions, df_train_max_gt, TIMES,
                     metrics=METRICS_LIST,
-                    df_train=df_train_max_gt
+                    df_train=df_train_max
                 )
                 for metric in METRICS_LIST:
                     statistics[f'{metric}_train_max_size'] = [train_max_metrics.get(metric)]
@@ -249,13 +255,13 @@ if __name__ == "__main__":
 
                     dl_test_score = DataLoader(
                         dataset=DiskDataset(
-                            'score', [f'Preprocessed/{train_samples}_{test_samples}_test_preprocessed.csv']),
+                            'score', [f'{DATA_FOLDER}/{train_samples}_{test_samples}_test_preprocessed.csv']),
                         batch_size=SCORE_BATCHSIZE)
                     df_test_pred, df_test_pred_gt = model.predict(dl_test_score, TIMES)
                     test_metrics = scorer.get_metrics(
                         model, df_test_pred, df_test_pred_gt, TIMES,
                         metrics=METRICS_LIST,
-                        df_train=df_test_pred_gt
+                        df_train=df_train_max
                     )
                     for metric in METRICS_LIST:
                         cur_statistics[f'{metric}_test'] = [test_metrics.get(metric)]
