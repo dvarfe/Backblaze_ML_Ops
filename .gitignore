@@ -16,6 +16,8 @@ Data/Data_collected
 Data/Data_downloaded
 Data/Data_preprocessed
 tests/Test_Data/Collected/Preprocessed
+Preprocessed_new
+Preprocessed_
 Artifacts
 Augmented
 Augmented_more
