@@ -1,5 +1,4 @@
 # Программа, которая обучает модели, перебирает разные параметры и замеряет качество на тесте
-import torch
 import time
 import pickle
 import copy
@@ -21,12 +20,30 @@ from disk_analyzer.models.SurvPredictor import SurvPredictor
 from disk_analyzer.models.Cox import CoxTimeVaryingEstimator
 from disk_analyzer.models.Net import MAX_CLIP
 
+
 np.random.seed(42)
 
-METRICS_LIST = {'ci', 'ibs', 'ibs_bal', 'iauc'}
+
+def generate_cox_hyperparams(l1_ratio_grid, penalizer_grid):
+    """
+    Генерирует список словарей гиперпараметров для CoxTimeVaryingEstimator
+    по сеткам l1_ratio и penalizer.
+    """
+    return [
+        {'l1_ratio': l1, 'penalizer': pen}
+        for l1 in l1_ratio_grid
+        for pen in penalizer_grid
+    ]
 
 
-def make_schema(metrics_list):
+L1_RATIO_GRID = np.logspace(-3, 2, 5)
+PENALIZER_GRID = np.logspace(-3, 2, 5)
+
+HPARAMS_LIST = generate_cox_hyperparams(L1_RATIO_GRID, PENALIZER_GRID)
+METRICS_LIST = {'ci', 'ibs'}
+
+
+def make_schema(metrics_list, hparams_list):
     schema = {
         'train_samples': [],
         'test_samples': [],
@@ -42,12 +59,14 @@ def make_schema(metrics_list):
         schema[f'{metric}_train_same_size'] = []
         schema[f'{metric}_train_max_size'] = []
         schema[f'{metric}_test'] = []
+    for hparam in hparams_list:
+        schema[f'{hparam}'] = []
     return schema
 
 
-SCHEMA = make_schema(METRICS_LIST)
+SCHEMA = make_schema(METRICS_LIST, ['l1_ratio', 'penalizer'])
 
-EXP_NUM = 66
+EXP_NUM = 68
 DATA_FOLDER = "Preprocessed_new"
 BASE_RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
 RES_FILENAME = os.path.join(BASE_RES_FOLDER, "grid_search.csv")
@@ -94,11 +113,11 @@ HPARAMS = {
     'methods': str(METHODS)
 }
 
-
 FILES_TO_SAVE = ["Experiments.py",
                  "disk_analyzer/models/Net.py",
                  "disk_analyzer/models/Dataset.py",
                  "disk_analyzer/models/SurvPredictor.py",
+                 "disk_analyzer/models/Cox.py",
                  ]
 
 
@@ -115,7 +134,7 @@ def create_res_file(filename):
 
 def create_description_file():
     desc_path = os.path.join(BASE_RES_FOLDER, "Description.txt")
-    os.mknod(desc_path)
+    # os.mknod(desc_path)
     with open(desc_path, "w") as f:
         for key in HPARAMS:
             f.write(f"{key} = {HPARAMS[key]}\n")
@@ -165,16 +184,23 @@ if __name__ == "__main__":
                                 to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
             batch_size=TRAIN_BATCHSIZE)
 
-        # Open Dataloader for validation during train
-        dl_val = DataLoader(
-            dataset=DiskDataset('score', [f'{DATA_FOLDER}/{train_samples}_1_test_preprocessed.csv'],
-                                to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
-            batch_size=TRAIN_BATCHSIZE)
+        if not (len(METHODS) == 1 and METHODS[0] == 'Cox'):
+            dl_val = DataLoader(
+                dataset=DiskDataset('score', [f'{DATA_FOLDER}/{train_samples}_1_test_preprocessed.csv'],
+                                    to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
+                batch_size=TRAIN_BATCHSIZE)
         for method in METHODS:
-            for h_dim in HIDDEN_DIM_GRID:
+            # Теперь цикл по списку гиперпараметров
+            if method == "Cox":
+                hyperparams_list = HPARAMS_LIST
+            else:
+                hyperparams_list = [{'hidden_dim': h_dim} for h_dim in HIDDEN_DIM_GRID]
+
+            for hparams in hyperparams_list:
                 time_train_start = time.time()
-                print(f'method={method}, hidden_dim={h_dim}')
-                cur_run = f"{method}_{h_dim}_{train_samples}"
+                hparam_str = "_".join(f"{k}{v}" for k, v in hparams.items())
+                print(f'method={method}, hparams={hparam_str}')
+                cur_run = f"{method}_{hparam_str}_{train_samples}"
                 cur_log_dir = os.path.join(LOG_DIR, cur_run)
                 writer = SummaryWriter(cur_log_dir)
                 i += 1
@@ -183,7 +209,9 @@ if __name__ == "__main__":
                 statistics['train_samples'] = [train_samples]
                 statistics['test_samples'] = [None]
                 statistics['method'] = [method]
-                statistics['hidden_dim'] = [h_dim]
+                statistics['hidden_dim'] = [hparams.get('hidden_dim', None)]
+                statistics['l1_ratio'] = [hparams.get('l1_ratio', None)]
+                statistics['penalizer'] = [hparams.get('penalizer', None)]
                 for metric in METRICS_LIST:
                     statistics[f'{metric}_train_same_size'] = [None]
                     statistics[f'{metric}_train_max_size'] = [None]
@@ -195,12 +223,14 @@ if __name__ == "__main__":
                 statistics['model_id'] = [str(i)+f'_{method}']
 
                 if method == "NN":
-                    model = DLClassifier(28, hidden_dim=h_dim, epochs=EPOCHS, lr=LR)
+                    model = DLClassifier(28, hidden_dim=hparams['hidden_dim'], epochs=EPOCHS, lr=LR)
                 elif method == "SP":
-                    model = SurvPredictor(28, hidden_dim=h_dim, epochs=EPOCHS, lr=LR)
+                    model = SurvPredictor(28, hidden_dim=hparams['hidden_dim'], epochs=EPOCHS, lr=LR)
                 elif method == "Cox":
-                    model = CoxTimeVaryingEstimator(penalizer=0.01, l1_ratio=0.1)
-                # model = SKLClassifier(SGDClassifier(loss='log_loss',  warm_start=True))
+                    model = CoxTimeVaryingEstimator(
+                        penalizer=hparams['penalizer'],
+                        l1_ratio=hparams['l1_ratio']
+                    )
                 try:
                     if method == "NN":
                         model.fit(dl_train, writer)
@@ -236,6 +266,7 @@ if __name__ == "__main__":
                     metrics=METRICS_LIST,
                     df_train=df_train_max
                 )
+
                 for metric in METRICS_LIST:
                     statistics[f'{metric}_train_max_size'] = [train_max_metrics.get(metric)]
 

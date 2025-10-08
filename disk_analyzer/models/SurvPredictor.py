@@ -221,13 +221,11 @@ class SurvPredictor:
                    otherwise an empty DataFrame.
          """
         self._model.eval()
-        # serials are contained separately, because they are strings
         pred_chunks = []
         pred_serials = []
         gt_chunks = []
 
         with torch.no_grad():
-            # Make tensor out of times
             times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
             n_times = len(times)
 
@@ -238,7 +236,6 @@ class SurvPredictor:
                 X = X.to(self.device)
                 obs_times = obs_times.to(self.device).int()
 
-                # Expand each observation on times
                 expanded_X = X.unsqueeze(1).expand(-1, n_times, -1)
                 expanded_times = times_tensor.reshape(1, -1, 1).expand(batch_size, -1, -1)
                 hazards = self._model(expanded_X.reshape(batch_size * len(times), -1),
@@ -257,10 +254,9 @@ class SurvPredictor:
                 if (real_durations != -1).any():
                     real_durations = real_durations.to(self.device)
                     y = y.to(self.device)
-                    # Process if there are true lifetime values
                     gt_block = torch.column_stack([
                         obs_times,
-                        real_durations - obs_times,
+                        real_durations,
                         y
                     ])
                     gt_chunks.append(gt_block)
@@ -287,7 +283,7 @@ class SurvPredictor:
             df_gt = pd.DataFrame()
 
         return df_surv, df_gt
-
+    
     def get_expected_time(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[np.ndarray, pd.DataFrame]:
         """Computes the expected time to event for observations in the dataloader 
         based on predicted survival functions.

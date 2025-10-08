@@ -3,7 +3,7 @@ from typing import Tuple, Set
 import pandas as pd
 import numpy as np
 from lifelines.utils import concordance_index  # type: ignore
-from survivors.metrics import ibs_remain, iauc
+from survivors.metrics import ibs_remain, iauc_WW_TI
 
 
 class ModelScorer():
@@ -191,7 +191,7 @@ class ModelScorer():
             if df_train is None:
                 raise ValueError("df_train must be provided to compute iauc")
             hazard_estim = -np.log(survival_estim)
-            iauc_score = iauc(
+            iauc_score = iauc_WW_TI(
                 iauc_train.to_records(index=False),
                 iauc_test.to_records(index=False),
                 hazard_estim,

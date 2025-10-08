@@ -8,7 +8,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # noqa
 os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"  # noqa
 
 import shutil
-from typing import List
+from typing import List, Dict
 import pandas as pd
 import numpy as np
 
@@ -21,23 +21,43 @@ from PredictionsAggregator import PredictionsAggregator
 np.random.seed(42)
 
 
-def write_dict(filename, dict_to_save):
-    df = pd.DataFrame(dict_to_save)
-    df.to_csv(filename, mode='a', header=False, index=False)
+def create_schema(base_schema, metrics_list, model_name):
+    ret_schema = copy.deepcopy(base_schema)
+    for metric in metrics_list:
+        ret_schema[f'{metric}_test'] = []
+    if model_name == 'Cox':
+        ret_schema['l1_ratio'] = []
+        ret_schema['penalizer'] = []
+    elif model_name == 'SP':
+        ret_schema['h_dim'] = []
+    return ret_schema
 
 
-SCHEMA = {
+BASE_SCHEMA: Dict[str, list] = {
     'train_samples': [],
     'test_samples': [],
     'agg_samples': [],
     'method': [],
-    'hidden_dim': [],
     'agg_method': [],
     'agg_weight': [],
-    'ci_train': [],
-    'ibs_train': [],
-    'ibs_bal_train': [],
-    'model_id': []}
+    'model_id': []
+}
+
+METRICS_LIST = {'ci', 'ibs', 'iauc'}
+DATASET_TRAIN_SAMPLES = 30
+MODEL_TRAIN_SAMPLES = 20
+SAMPLE_GRID = np.arange(1, 10)
+EXP_NUM = 69
+BASE_EXP_NUM = 68  # Exp number from which fitted models are taken
+DATA_FOLDER = "Preprocessed_new"
+RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
+MODELS_FOLDER = os.path.join(RES_FOLDER, "models")
+RES_FILENAME = os.path.join(
+    RES_FOLDER, f"Agg_{DATASET_TRAIN_SAMPLES}_{MODEL_TRAIN_SAMPLES}_{max(SAMPLE_GRID)}.csv")
+TEST_GRID = [10]
+# MODELS_SIZE = [2048]
+MODEL_NAME = 'Cox'
+SCHEMA = create_schema(BASE_SCHEMA, METRICS_LIST, MODEL_NAME)
 
 
 def create_res_file(filename):
@@ -51,6 +71,11 @@ def load_model(filename):
         return pickle.load(f)
 
 
+def write_dict(filename, dict_to_save):
+    df = pd.DataFrame(dict_to_save)
+    df.to_csv(filename, mode='a', header=False, index=False)
+
+
 def sample_first_observations(df, sample_grid):
     dict_of_all_samples = {}
     df = df.sort_values(by=['serial_number', 'time'])
@@ -60,19 +85,6 @@ def sample_first_observations(df, sample_grid):
             by=['serial_number', 'time'])
         dict_of_all_samples[first_n] = df_train_sampled
     return dict_of_all_samples
-
-
-DATASET_TRAIN_SAMPLES = 30
-MODEL_TRAIN_SAMPLES = 20
-SAMPLE_GRID = np.arange(1, 10)
-EXP_NUM = 49
-BASE_EXP_NUM = 46  # Exp number from which fitted models are taken
-RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
-MODELS_FOLDER = os.path.join(RES_FOLDER, "models")
-RES_FILENAME = os.path.join(
-    RES_FOLDER, f"Agg_{DATASET_TRAIN_SAMPLES}_{MODEL_TRAIN_SAMPLES}_{max(SAMPLE_GRID)}.csv")
-TEST_GRID = [10]
-MODELS_SIZE = [2048]
 
 
 def get_models_from_exp(base_exp_num: int) -> List[str]:
@@ -98,6 +110,27 @@ def init_experiments_folder(base_exp_num):
     shutil.copy(f"Artifacts/Exp_{BASE_EXP_NUM}/grid_search.csv", RES_FOLDER)
 
 
+# def get_X_gt_with_na_short_narezka(df):
+#     df = df.sort_values(['serial_number', 'time'])
+#     X_gt = df.copy()
+#     X_gt['next_time'] = X_gt.groupby('id')['time'].shift(-1)
+#     X_gt['event'] = X_gt.groupby('id')['event'].shift(-1)
+#     X_gt['duration'] = X_gt['next_time'] - X_gt['time']
+#     X_gt = X_gt[['time', 'id', 'duration', 'event']]
+
+#     return X_gt Неправильно, на новых данных надо проставить цензуру.
+
+
+def get_X_gt_long_narezka(df):
+    """Функция для подготовки ground truth данных"""
+    df = df.sort_values(['serial_number', 'time'])
+    X_gt = df.copy()
+    X_gt['event_time'] = X_gt['max_lifetime']
+    X_gt['duration'] = X_gt['event_time'] - X_gt['time']
+    X_gt = X_gt.loc[X_gt['duration'] != 0, ['time', 'serial_number', 'duration', 'failure']]
+    return X_gt
+
+
 if __name__ == "__main__":
     """
     Я переделал Predictions Aggregator так, чтобы теперь он только агрегировал уже готовые прогнозы.
@@ -110,12 +143,11 @@ if __name__ == "__main__":
     init_experiments_folder(BASE_EXP_NUM)
 
     grid_search = pd.read_csv(f'{RES_FOLDER}/grid_search.csv')
-    grid_search = grid_search[(grid_search['train_samples'] == MODEL_TRAIN_SAMPLES) & (grid_search['error'] != 1)]
+    grid_search = grid_search[(grid_search['train_samples'] == MODEL_TRAIN_SAMPLES) &
+                              (grid_search['error'] != 1) & (grid_search['test_samples'] == 1)]
 
-    models = grid_search[grid_search['hidden_dim'].isin(MODELS_SIZE)]['model_id'].unique()
     for test_samples in TEST_GRID:
-        # test_path = f'Preprocessed/{DATASET_TRAIN_SAMPLES}_{test_samples}_test_preprocessed.csv'
-        test_path = f'test_30_more_10.csv'
+        test_path = os.path.join(DATA_FOLDER, f'{DATASET_TRAIN_SAMPLES}_{test_samples}_test_preprocessed.csv')
         df_test = pd.read_csv(test_path)
         # Выкидываем последние наблюдения в каждой серии
         df_test = df_test[df_test['time'] != df_test['max_lifetime']]
@@ -144,9 +176,9 @@ if __name__ == "__main__":
                 "100": PredictionsAggregator(mode='t_dist', weight=100),
                 "1000": PredictionsAggregator(mode='t_dist', weight=1000)
             },
-            # "prob_dist": {
-            #     "-1": PredictionsAggregator(mode='prob_dist'),
-            # },
+            "prob_dist": {
+                "-1": PredictionsAggregator(mode='prob_dist'),
+            },
             "geom": {
                 "0.01": PredictionsAggregator(mode='geom', weight=0.01),
                 "0.1": PredictionsAggregator(mode='geom', weight=0.1),
@@ -161,11 +193,26 @@ if __name__ == "__main__":
         any_dict_key = list(aggregators_dict.keys())[0]
         any_dict_key_key = list(aggregators_dict[any_dict_key].keys())[0]
         times_extended = aggregators_dict[any_dict_key][any_dict_key_key].get_extended_times(df_test, times=TIMES)
-        for model_id in models:
-            model = load_model(f"{MODELS_FOLDER}/{model_id}_model.pkl")
+        for _, row in grid_search.iterrows():
+            model_id = row['model_id']
+            hparams = {}
+            if MODEL_NAME == 'Cox':
+                hparams = {'l1_ratio': row['l1_ratio'],
+                           'penalizer': row['penalizer']}
+            elif MODEL_NAME == 'SP':
+                hparams = {'h_dim': row['h_dim']}
+
+            model = load_model(os.path.join(MODELS_FOLDER, f'{model_id}_model.pkl'))
             X_pred, X_gt = model.predict(dl_test, times=times_extended)
             X_pred = X_pred.sort_values(by=['serial_number', 'time'])
             X_gt = X_gt.sort_values(by=['serial_number', 'time'])
+
+            if 'iauc' in METRICS_LIST:
+                train_samples = row['train_samples']
+                df_train = pd.read_csv(os.path.join(DATA_FOLDER, f'{train_samples}_train_preprocessed.csv'))
+                df_train_gt = get_X_gt_long_narezka(df_train)
+            else:
+                df_train_gt = None
 
             sampled_predictions = sample_first_observations(X_pred, SAMPLE_GRID)
 
@@ -174,8 +221,7 @@ if __name__ == "__main__":
             for n_samples in SAMPLE_GRID:
                 if n_samples > test_samples:
                     continue
-                h_dim = grid_search[grid_search['model_id'] == model_id]['hidden_dim'].unique()[0]
-                print(f'Начало обработки {n_samples} n_samples, {h_dim} hidden_dim')
+                print(f'Начало обработки {n_samples} n_samples, {hparams}')
                 time_start = time.time()
                 statistics = copy.deepcopy(SCHEMA)
 
@@ -183,11 +229,9 @@ if __name__ == "__main__":
                 statistics['test_samples'] = test_samples
                 statistics['agg_samples'] = [n_samples]
                 statistics['method'] = [None]
-                statistics['hidden_dim'] = h_dim
-                statistics['ci_train'] = [None]
-                statistics['ibs_train'] = [None]
-                statistics['ibs_bal_train'] = [None]
                 statistics['model_id'] = [model_id]
+                for key in hparams:
+                    statistics[key] = hparams[key]
 
                 cur_X_pred = sampled_predictions[n_samples]
                 cur_timeshift = cur_X_pred.groupby('serial_number')['time'].transform('max') - cur_X_pred['time']
@@ -206,8 +250,12 @@ if __name__ == "__main__":
                         cur_pred_agg = aggregators_dict[method][weight]
                         aggregated_pred = cur_pred_agg.predict(cur_X_pred, TIMES, timeshift=cur_timeshift)
 
-                        cur_statistics['ci_train'], cur_statistics['ibs_train'], cur_statistics['ibs_bal_train'] = scorer.get_ci_ibs_ibs_bal(
-                            model, df_pred=aggregated_pred, df_gt=cur_X_gt, times=TIMES)
+                        metrics = scorer.get_metrics(
+                            model, aggregated_pred, cur_X_gt, TIMES,
+                            metrics=METRICS_LIST,
+                            df_train=df_train_gt)
+                        for metric in metrics:
+                            cur_statistics[f'{metric}_test'] = metrics.get(metric)
 
                         write_dict(RES_FILENAME, cur_statistics)
                 print(f'Обработка {n_samples} завершена за {time.time() - time_start} секунд')

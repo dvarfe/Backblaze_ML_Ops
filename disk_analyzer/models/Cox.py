@@ -30,8 +30,8 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         df = pd.DataFrame(features)
         df[self.id_col] = serial_numbers
         df[self.time_col] = obs_times
-        df[self.event_col] = y # здесь можно поставить нарезкозависимое преобразование
-        df['duration'] = durations 
+        df[self.event_col] = y  # здесь можно поставить нарезкозависимое преобразование
+        df['duration'] = durations
         return df
 
     def fit(self, train_dataloader: DataLoader):
@@ -59,50 +59,49 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         df['stop'] = df.groupby(self.id_col)['start'].shift(-1)
         last_mask = df['stop'].isna()
         df.loc[last_mask, 'stop'] = df.loc[last_mask, 'start'] + df.loc[last_mask, 'duration']
-        df.loc[~last_mask, self.event_col] = 0 # Все наблюдения, кроме последнего цензурированые
+        df.loc[~last_mask, self.event_col] = 0  # Все наблюдения, кроме последнего цензурированые
         df = df.drop(columns=['duration'])
         return df
 
     def _get_survival_function(self, X_features, times):
         baseline_surv = self.baseline_survival_
         fill_indices = baseline_surv.index.searchsorted(times, side='right') - 1
-        fill_indices = np.clip(fill_indices, 0, len(baseline_surv) - 1)
+        fill_indices = np.clip(fill_indices, 0, max(fill_indices) - 1)
         baseline_surv_interp = baseline_surv.iloc[fill_indices, 0].values
         partial_haz = self.predict_partial_hazard(X_features).values
         surv = baseline_surv_interp[None, :] ** partial_haz[:, None]
         return surv
 
     def predict(self, dataloader: DataLoader, times: np.ndarray):
-        pred_chunks = []
-        pred_serials = []
-        gt_chunks = []
-
-        times = np.array(times)
-        for batch in tqdm(dataloader, desc="Cox prediction"):
+        """
+        Собирает все данные из DataLoader в один DataFrame, затем предсказывает survival-функции для всех сразу.
+        Возвращает: (df_surv, df_gt)
+        """
+        # Сначала соберём весь датасет в один DataFrame
+        dfs = []
+        for batch in tqdm(dataloader, desc="Collecting data for Cox prediction"):
             batch_df = self._batch_to_df(batch)
-            X_feat = batch_df[self.feature_cols]
-            surv = self._get_survival_function(X_feat, times)
-            batch_pred = np.column_stack([batch_df[self.time_col].values, surv])
-            pred_chunks.append(batch_pred)
-            pred_serials.append(batch_df[self.id_col].values)
+            dfs.append(batch_df)
+        df_all = pd.concat(dfs, ignore_index=True)
 
-            if 'duration' in batch_df:
-                gt_block = np.column_stack([
-                    batch_df[self.time_col].values,
-                    batch_df['duration'].values,
-                    batch_df[self.event_col].values
-                ])
-                gt_chunks.append(gt_block)
-
-        pred_values = np.vstack(pred_chunks)
-        serial_numbers_flat = np.concatenate(pred_serials)
+        X_feat = df_all[self.feature_cols]
+        times = np.array(times)
+        surv = self._get_survival_function(X_feat, times)
+        # Формируем блок: [time, S(t1), S(t2), ...]
+        pred_values = np.column_stack([df_all[self.time_col].values, surv])
+        serial_numbers_flat = df_all[self.id_col].values
         columns = ['time'] + times.tolist()
         df_surv = pd.DataFrame(pred_values, columns=columns)
         df_surv.insert(0, 'serial_number', serial_numbers_flat)
         df_surv['time'] = df_surv['time'].astype('int32')
 
-        if gt_chunks:
-            gt_values = np.vstack(gt_chunks)
+        # gt (ground truth)
+        if 'duration' in df_all:
+            gt_values = np.column_stack([
+                df_all[self.time_col].values,
+                df_all['duration'].values,  
+                df_all[self.event_col].values
+            ])
             df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
             df_gt.insert(0, 'serial_number', serial_numbers_flat)
             df_gt = df_gt.astype({'serial_number': 'string', 'time': 'int32', 'duration': 'int32'})
