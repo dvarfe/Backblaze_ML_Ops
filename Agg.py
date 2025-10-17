@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from disk_analyzer.models.Dataset import DiskDataset
 from Experiments import TIMES, TRAIN_BATCHSIZE
 from PredictionsAggregator import PredictionsAggregator
+from disk_analyzer.models.MagiCox import MagiCoxTimeVaryingEstimator
 
 np.random.seed(42)
 
@@ -47,14 +48,14 @@ METRICS_LIST = {'ci', 'ibs', 'iauc'}
 DATASET_TRAIN_SAMPLES = 30
 MODEL_TRAIN_SAMPLES = 20
 SAMPLE_GRID = np.arange(1, 10)
-EXP_NUM = 69
+EXP_NUM = 74
 BASE_EXP_NUM = 68  # Exp number from which fitted models are taken
 DATA_FOLDER = "Preprocessed_new"
 RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
 MODELS_FOLDER = os.path.join(RES_FOLDER, "models")
 RES_FILENAME = os.path.join(
     RES_FOLDER, f"Agg_{DATASET_TRAIN_SAMPLES}_{MODEL_TRAIN_SAMPLES}_{max(SAMPLE_GRID)}.csv")
-TEST_GRID = [10]
+TEST_GRID = [25]
 # MODELS_SIZE = [2048]
 MODEL_NAME = 'Cox'
 SCHEMA = create_schema(BASE_SCHEMA, METRICS_LIST, MODEL_NAME)
@@ -144,7 +145,8 @@ if __name__ == "__main__":
 
     grid_search = pd.read_csv(f'{RES_FOLDER}/grid_search.csv')
     grid_search = grid_search[(grid_search['train_samples'] == MODEL_TRAIN_SAMPLES) &
-                              (grid_search['error'] != 1) & (grid_search['test_samples'] == 1)]
+                              (grid_search['error'] != 1) & (grid_search['test_samples'] == 1) &
+                              (grid_search['model_id'] == '127_Cox')]  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     for test_samples in TEST_GRID:
         test_path = os.path.join(DATA_FOLDER, f'{DATASET_TRAIN_SAMPLES}_{test_samples}_test_preprocessed.csv')
@@ -158,37 +160,37 @@ if __name__ == "__main__":
             batch_size=TRAIN_BATCHSIZE)
 
         aggregators_dict = {
-            "n_dist": {
-                "0.01": PredictionsAggregator(mode='n_dist', weight=0.01),
-                "0.1": PredictionsAggregator(mode='n_dist', weight=0.1),
-                "0.3": PredictionsAggregator(mode='n_dist', weight=0.3),
-                "0.5": PredictionsAggregator(mode='n_dist', weight=0.5),
-                "0.7": PredictionsAggregator(mode='n_dist', weight=0.7),
-                "0.9": PredictionsAggregator(mode='n_dist', weight=0.9),
-                "0.99": PredictionsAggregator(mode='n_dist', weight=0.99)
-            },
-            "t_dist": {
-                "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
-                "1": PredictionsAggregator(mode='t_dist', weight=1),
-                "10": PredictionsAggregator(mode='t_dist', weight=10),
-                "25": PredictionsAggregator(mode='t_dist', weight=25),
-                "50": PredictionsAggregator(mode='t_dist', weight=50),
-                "100": PredictionsAggregator(mode='t_dist', weight=100),
-                "1000": PredictionsAggregator(mode='t_dist', weight=1000)
-            },
-            "prob_dist": {
-                "-1": PredictionsAggregator(mode='prob_dist'),
-            },
-            "geom": {
-                "0.01": PredictionsAggregator(mode='geom', weight=0.01),
-                "0.1": PredictionsAggregator(mode='geom', weight=0.1),
-                "0.3": PredictionsAggregator(mode='geom', weight=0.3),
-                "0.5": PredictionsAggregator(mode='geom', weight=0.5),
-                "0.7": PredictionsAggregator(mode='geom', weight=0.7),
-                "0.9": PredictionsAggregator(mode='geom', weight=0.9),
-                "0.99": PredictionsAggregator(mode='geom', weight=0.99)
-            },
-        }
+                    "n_dist": {
+                        "0.01": PredictionsAggregator(mode='n_dist', weight=0.01),
+                        "0.1": PredictionsAggregator(mode='n_dist', weight=0.1),
+                        "0.3": PredictionsAggregator(mode='n_dist', weight=0.3),
+                        "0.5": PredictionsAggregator(mode='n_dist', weight=0.5),
+                        "0.7": PredictionsAggregator(mode='n_dist', weight=0.7),
+                        "0.9": PredictionsAggregator(mode='n_dist', weight=0.9),
+                        "0.99": PredictionsAggregator(mode='n_dist', weight=0.99)
+                    },
+                    "t_dist": {
+                        "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
+                        "1": PredictionsAggregator(mode='t_dist', weight=1),
+                        "10": PredictionsAggregator(mode='t_dist', weight=10),
+                        "25": PredictionsAggregator(mode='t_dist', weight=25),
+                        "50": PredictionsAggregator(mode='t_dist', weight=50),
+                        "100": PredictionsAggregator(mode='t_dist', weight=100),
+                        "1000": PredictionsAggregator(mode='t_dist', weight=1000)
+                    },
+                    "prob_dist": {
+                        "-1": PredictionsAggregator(mode='prob_dist'),
+                    },
+                    "geom": {
+                        "0.01": PredictionsAggregator(mode='geom', weight=0.01),
+                        "0.1": PredictionsAggregator(mode='geom', weight=0.1),
+                        "0.3": PredictionsAggregator(mode='geom', weight=0.3),
+                        "0.5": PredictionsAggregator(mode='geom', weight=0.5),
+                        "0.7": PredictionsAggregator(mode='geom', weight=0.7),
+                        "0.9": PredictionsAggregator(mode='geom', weight=0.9),
+                        "0.99": PredictionsAggregator(mode='geom', weight=0.99)
+                    },
+                }
 
         any_dict_key = list(aggregators_dict.keys())[0]
         any_dict_key_key = list(aggregators_dict[any_dict_key].keys())[0]
@@ -203,13 +205,16 @@ if __name__ == "__main__":
                 hparams = {'h_dim': row['h_dim']}
 
             model = load_model(os.path.join(MODELS_FOLDER, f'{model_id}_model.pkl'))
+
+            model.__class__ = MagiCoxTimeVaryingEstimator  # !!!!!!!!!!!!!!!
+
             X_pred, X_gt = model.predict(dl_test, times=times_extended)
             X_pred = X_pred.sort_values(by=['serial_number', 'time'])
             X_gt = X_gt.sort_values(by=['serial_number', 'time'])
 
             if 'iauc' in METRICS_LIST:
                 train_samples = row['train_samples']
-                df_train = pd.read_csv(os.path.join(DATA_FOLDER, f'{train_samples}_train_preprocessed.csv'))
+                df_train = pd.read_csv(os.path.join(DATA_FOLDER, f'1_train_preprocessed.csv'))
                 df_train_gt = get_X_gt_long_narezka(df_train)
             else:
                 df_train_gt = None
@@ -260,37 +265,35 @@ if __name__ == "__main__":
                         write_dict(RES_FILENAME, cur_statistics)
                 print(f'Обработка {n_samples} завершена за {time.time() - time_start} секунд')
 
-        # aggregators_dict = {
-        #     "t_dist": {
-        #         "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
-        #         "1": PredictionsAggregator(mode='t_dist', weight=1),
-        #         "10": PredictionsAggregator(mode='t_dist', weight=10),
-        #         "25": PredictionsAggregator(mode='t_dist', weight=25),
-        #         "50": PredictionsAggregator(mode='t_dist', weight=50),
-        #         "100": PredictionsAggregator(mode='t_dist', weight=100),
-        #         "1000": PredictionsAggregator(mode='t_dist', weight=1000)
-        #     }
-        # }
-
-        # aggregators_dict = {
-        #     "geom": {
-        #         "0.01": PredictionsAggregator(mode='geom', weight=0.01),
-        #         "0.1": PredictionsAggregator(mode='geom', weight=0.1),
-        #         "0.3": PredictionsAggregator(mode='geom', weight=0.3),
-        #         "0.5": PredictionsAggregator(mode='geom', weight=0.5),
-        #         "0.7": PredictionsAggregator(mode='geom', weight=0.7),
-        #         "0.9": PredictionsAggregator(mode='geom', weight=0.9),
-        #         "0.99": PredictionsAggregator(mode='geom', weight=0.99)
-        #     }
-        # }
-        # aggregators_dict = {
-        #     "n_dist": {
-        #         "0.01": PredictionsAggregator(mode='n_dist', weight=0.01),
-        #         "0.1": PredictionsAggregator(mode='n_dist', weight=0.1),
-        #         "0.3": PredictionsAggregator(mode='n_dist', weight=0.3),
-        #         "0.5": PredictionsAggregator(mode='n_dist', weight=0.5),
-        #         "0.7": PredictionsAggregator(mode='n_dist', weight=0.7),
-        #         "0.9": PredictionsAggregator(mode='n_dist', weight=0.9),
-        #         "0.99": PredictionsAggregator(mode='n_dist', weight=0.99)
-        #     }
-        # }
+# aggregators_dict = {
+#             "n_dist": {
+#                 "0.01": PredictionsAggregator(mode='n_dist', weight=0.01),
+#                 "0.1": PredictionsAggregator(mode='n_dist', weight=0.1),
+#                 "0.3": PredictionsAggregator(mode='n_dist', weight=0.3),
+#                 "0.5": PredictionsAggregator(mode='n_dist', weight=0.5),
+#                 "0.7": PredictionsAggregator(mode='n_dist', weight=0.7),
+#                 "0.9": PredictionsAggregator(mode='n_dist', weight=0.9),
+#                 "0.99": PredictionsAggregator(mode='n_dist', weight=0.99)
+#             },
+#             "t_dist": {
+#                 "0.1": PredictionsAggregator(mode='t_dist', weight=0.1),
+#                 "1": PredictionsAggregator(mode='t_dist', weight=1),
+#                 "10": PredictionsAggregator(mode='t_dist', weight=10),
+#                 "25": PredictionsAggregator(mode='t_dist', weight=25),
+#                 "50": PredictionsAggregator(mode='t_dist', weight=50),
+#                 "100": PredictionsAggregator(mode='t_dist', weight=100),
+#                 "1000": PredictionsAggregator(mode='t_dist', weight=1000)
+#             },
+#             "prob_dist": {
+#                 "-1": PredictionsAggregator(mode='prob_dist'),
+#             },
+#             "geom": {
+#                 "0.01": PredictionsAggregator(mode='geom', weight=0.01),
+#                 "0.1": PredictionsAggregator(mode='geom', weight=0.1),
+#                 "0.3": PredictionsAggregator(mode='geom', weight=0.3),
+#                 "0.5": PredictionsAggregator(mode='geom', weight=0.5),
+#                 "0.7": PredictionsAggregator(mode='geom', weight=0.7),
+#                 "0.9": PredictionsAggregator(mode='geom', weight=0.9),
+#                 "0.99": PredictionsAggregator(mode='geom', weight=0.99)
+#             },
+#         }

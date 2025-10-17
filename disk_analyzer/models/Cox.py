@@ -87,7 +87,6 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         X_feat = df_all[self.feature_cols]
         times = np.array(times)
         surv = self._get_survival_function(X_feat, times)
-        # Формируем блок: [time, S(t1), S(t2), ...]
         pred_values = np.column_stack([df_all[self.time_col].values, surv])
         serial_numbers_flat = df_all[self.id_col].values
         columns = ['time'] + times.tolist()
