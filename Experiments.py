@@ -17,7 +17,7 @@ from disk_analyzer.stages import ModelScorer
 from disk_analyzer.models.Dataset import DiskDataset
 from disk_analyzer.models.DLClassifier import DLClassifier
 from disk_analyzer.models.SurvPredictor import SurvPredictor
-from disk_analyzer.models.Cox import CoxTimeVaryingEstimator
+from disk_analyzer.models.Cox import CoxTimeVaryingEstimator, CoxTimeInvariantFitter
 from disk_analyzer.models.Net import MAX_CLIP
 
 
@@ -36,8 +36,8 @@ def generate_cox_hyperparams(l1_ratio_grid, penalizer_grid):
     ]
 
 
-L1_RATIO_GRID = np.logspace(-3, 2, 5)
-PENALIZER_GRID = np.logspace(-3, 2, 5)
+L1_RATIO_GRID = np.logspace(-2, 2, 5)[:3]  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+PENALIZER_GRID = np.logspace(-2, 2, 5)
 
 HPARAMS_LIST = generate_cox_hyperparams(L1_RATIO_GRID, PENALIZER_GRID)
 METRICS_LIST = {'ci', 'ibs'}
@@ -66,7 +66,7 @@ def make_schema(metrics_list, hparams_list):
 
 SCHEMA = make_schema(METRICS_LIST, ['l1_ratio', 'penalizer'])
 
-EXP_NUM = 68
+EXP_NUM = 72
 DATA_FOLDER = "Preprocessed_new"
 BASE_RES_FOLDER = os.path.join("Artifacts", f"Exp_{EXP_NUM}")
 RES_FILENAME = os.path.join(BASE_RES_FOLDER, "grid_search.csv")
@@ -78,7 +78,7 @@ HIDDEN_DIM_GRID = [2048]
 TO_CENS_SHIFT = []  # range(1, 200, 25)
 TO_TERM_SHIFT = []  # range(1, 200, 25)
 CENS_PROB = -1
-METHODS = ['Cox']
+METHODS = ['CoxTISN']
 EPOCHS = 100
 LR = 5e-6
 EARLY_STOPPING = True
@@ -113,6 +113,8 @@ HPARAMS = {
     'methods': str(METHODS)
 }
 
+EXP_DESC = "Обучаем CoxPH для экспериментов с агрегацией"
+
 FILES_TO_SAVE = ["Experiments.py",
                  "disk_analyzer/models/Net.py",
                  "disk_analyzer/models/Dataset.py",
@@ -138,6 +140,7 @@ def create_description_file():
     with open(desc_path, "w") as f:
         for key in HPARAMS:
             f.write(f"{key} = {HPARAMS[key]}\n")
+        f.write(EXP_DESC)
 
 
 def save_model(model, model_id):
@@ -184,14 +187,11 @@ if __name__ == "__main__":
                                 to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
             batch_size=TRAIN_BATCHSIZE)
 
-        if not (len(METHODS) == 1 and METHODS[0] == 'Cox'):
-            dl_val = DataLoader(
-                dataset=DiskDataset('score', [f'{DATA_FOLDER}/{train_samples}_1_test_preprocessed.csv'],
-                                    to_cens_time_list=TO_CENS_SHIFT, to_term_time_list=TO_TERM_SHIFT, cens_prob=CENS_PROB),
-                batch_size=TRAIN_BATCHSIZE)
+        if not (len(METHODS) == 1 and METHODS[0].startswith('Cox')):
+            dl_val = None
         for method in METHODS:
             # Теперь цикл по списку гиперпараметров
-            if method == "Cox":
+            if method.startswith("Cox"):
                 hyperparams_list = HPARAMS_LIST
             else:
                 hyperparams_list = [{'hidden_dim': h_dim} for h_dim in HIDDEN_DIM_GRID]
@@ -231,13 +231,18 @@ if __name__ == "__main__":
                         penalizer=hparams['penalizer'],
                         l1_ratio=hparams['l1_ratio']
                     )
+                elif method == "CoxTISN":
+                    model = CoxTimeInvariantFitter(
+                        penalizer=hparams['penalizer'],
+                        l1_ratio=hparams['l1_ratio']
+                    )
                 try:
                     if method == "NN":
                         model.fit(dl_train, writer)
                     elif method == "SP":
                         model.fit(dl_train, times=TRAIN_TIMES, val_dataloader=dl_val, early_stopping=EARLY_STOPPING,
                                   score_metric=SCORE_METRIC, patience=PATIENCE, min_delta=MIN_DELTA, writer=writer)
-                    elif method == "Cox":
+                    elif method.startswith("Cox"):
                         model.fit(dl_train)
                 except Exception as e:
                     statistics['error'] = 1
