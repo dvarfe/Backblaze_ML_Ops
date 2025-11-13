@@ -11,7 +11,7 @@ from ..utils.constants import TIMES, EPOCHS
 
 np.random.seed(42)
 
-### НЕАКТУАЛЬНО, ПРЕДИКТ РАБОТАЕТ ПО-СТАРОМУ, ЖДЁТ, ЧТО ДАТАЛОАДЕР В ПРЕДИКТЕ ВОЗВРАЩАЕТ МОМЕНТ ИСХОДА
+### НЕАКТУАЛЬНО, ПРЕДИКТ РАБОТАЕТ ПО-СТАРОМУ, ЖДЁТ, ЧТО ДАТАЛОАДЕР В ПРЕДИКТЕ ВОЗВРАЩАЕТ МОМЕНТ ИСХОДА и предикт может не сохранять состояние
 class SKLClassifier:
     """
     A wrapper class for scikit-learn models that implement the `partial_fit` method.

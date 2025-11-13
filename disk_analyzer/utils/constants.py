@@ -87,7 +87,7 @@ TRAIN_BATCHSIZE = 10000
 FEATURES_NUM = 16
 
 # Scoring constants
-TIMES = np.arange(1, 160, dtype=np.int_)
+TIMES = np.arange(0, 730)  # 729 - max duration in 2016, 2017
 
 # Models vault
 MODELS_VAULT = 'Models'

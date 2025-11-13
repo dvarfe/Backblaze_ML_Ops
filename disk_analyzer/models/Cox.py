@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
-from lifelines import CoxTimeVaryingFitter
+from lifelines import CoxTimeVaryingFitter, CoxPHFitter
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -98,7 +98,7 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         if 'duration' in df_all:
             gt_values = np.column_stack([
                 df_all[self.time_col].values,
-                df_all['duration'].values,  
+                df_all['duration'].values,
                 df_all[self.event_col].values
             ])
             df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
@@ -118,7 +118,8 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         survival_vec = X_pred.drop(['serial_number', 'time'], axis='columns').values
         return np.trapz(y=survival_vec, x=times)
 
-class CoxTimeInvariantFitter(CoxPHFitter):
+
+class CoxTimeInvariantSNFitter(CoxPHFitter):
 
     def __init__(self, penalizer=0.0, l1_ratio=0.0, event_col="failure", time_col='time', id_col='serial_number', device=None):
         super().__init__(penalizer=penalizer, l1_ratio=l1_ratio)
@@ -138,7 +139,7 @@ class CoxTimeInvariantFitter(CoxPHFitter):
         df = pd.DataFrame(features)
         df[self.id_col] = serial_numbers
         df[self.time_col] = obs_times
-        df[self.event_col] = y  
+        df[self.event_col] = y
         df['duration'] = durations
         return df
 
@@ -201,7 +202,7 @@ class CoxTimeInvariantFitter(CoxPHFitter):
         if 'duration' in df_all:
             gt_values = np.column_stack([
                 df_all[self.time_col].values,
-                df_all['duration'].values,  
+                df_all['duration'].values,
                 df_all[self.event_col].values
             ])
             df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
@@ -220,9 +221,13 @@ class CoxTimeInvariantFitter(CoxPHFitter):
     def get_expected_time_by_predictions(self, X_pred: pd.DataFrame, times: np.ndarray):
         survival_vec = X_pred.drop(['serial_number', 'time'], axis='columns').values
         return np.trapz(y=survival_vec, x=times)
-    
 
-class CoxTimeInvariantFitter(CoxPHFitter):
+
+class CoxTimeInvariantFitter(CoxTimeInvariantSNFitter):
+    pass
+
+
+class CoxTimeInvariantLNFitter(CoxPHFitter):
 
     def __init__(self, penalizer=0.0, l1_ratio=0.0, event_col="failure", time_col='time', id_col='serial_number', device=None):
         super().__init__(penalizer=penalizer, l1_ratio=l1_ratio)
@@ -242,7 +247,7 @@ class CoxTimeInvariantFitter(CoxPHFitter):
         df = pd.DataFrame(features)
         df[self.id_col] = serial_numbers
         df[self.time_col] = obs_times
-        df[self.event_col] = y  
+        df[self.event_col] = y
         df['duration'] = durations
         return df
 
@@ -252,23 +257,11 @@ class CoxTimeInvariantFitter(CoxPHFitter):
             batch_df = self._batch_to_df(batch)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
-        df_tv = self._to_start_stop(df_all)
-        df_to_fit = df_tv.drop(columns=[self.time_col, self.id_col])
+        df_to_fit = df_all.drop(columns=[self.time_col, self.id_col])
         super().fit(df_to_fit, duration_col='duration', event_col=self.event_col)
-        self.feature_cols = [c for c in df_tv.columns if c not in [
+        self.feature_cols = [c for c in df_all.columns if c not in [
             self.id_col, self.time_col, self.event_col, 'duration']]
         return self
-
-    def _to_start_stop(self, df):
-        """
-        Формирует DataFrame для CoxTimeVaryingFitter:
-        - start = time - min_time_in_group
-        - stop = start следующего наблюдения, для последнего: start + duration
-        - event_col для всех кроме последнего: из следующей строки, для последнего — текущее значение
-        """
-        df = df.sort_values([self.id_col, self.time_col]).copy()
-        df = df[(df['time'] == df.groupby(self.id_col)['time'].transform('min'))]
-        return df
 
     def _get_survival_function(self, X_features, times):
         baseline_surv = self.baseline_survival_
@@ -305,7 +298,7 @@ class CoxTimeInvariantFitter(CoxPHFitter):
         if 'duration' in df_all:
             gt_values = np.column_stack([
                 df_all[self.time_col].values,
-                df_all['duration'].values,  
+                df_all['duration'].values,
                 df_all[self.event_col].values
             ])
             df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
@@ -324,4 +317,3 @@ class CoxTimeInvariantFitter(CoxPHFitter):
     def get_expected_time_by_predictions(self, X_pred: pd.DataFrame, times: np.ndarray):
         survival_vec = X_pred.drop(['serial_number', 'time'], axis='columns').values
         return np.trapz(y=survival_vec, x=times)
-

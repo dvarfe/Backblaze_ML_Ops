@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, List
+from typing import Dict, Optional, Set, Tuple, List
 import time
 import copy
 
@@ -18,6 +18,58 @@ torch.manual_seed(42)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 np.random.seed(42)
+
+
+def ibs_like_loss(surv_pred, y_true):
+    return ((surv_pred - y_true) ** 2).mean(dim=-1).mean(dim=-1).mean(dim=-1)
+
+
+def masked_loss(base_criterion, surv_pred, y_true_surv, events=None, durations=None, times=None):
+    # If no masking requested, use standard MSE loss over all elements
+    if (events is None) and (durations is None):
+        mse = nn.MSELoss(reduction='mean')
+        return mse(surv_pred, y_true_surv)
+
+    device = surv_pred.device
+
+    if events is not None:
+        if events.dim() > 1 and events.size(1) == 1:
+            events = events.squeeze(1)
+        events = events.to(device)
+    if durations is not None:
+        if durations.dim() > 1 and durations.size(1) == 1:
+            durations = durations.squeeze(1)
+        durations = durations.to(device)
+
+    if times is None:
+        raise ValueError("times must be provided when using events/durations masking")
+
+    times = times.to(device)
+    # times shape: (T,) -> make (1, T) for broadcasting
+    time_points = times.view(1, -1)
+
+    # durations -> (B,) -> (B,1) for broadcasting
+    durations_f = durations.float().view(-1, 1)
+
+    event_observed = events.to(dtype=torch.bool).view(-1)
+
+    # valid_mask shape: (B, T)
+    valid_mask = (event_observed.view(-1, 1) | (time_points <= durations_f)).to(dtype=torch.bool)
+
+    se = (surv_pred - y_true_surv) ** 2  # shape (B, T)
+
+    # Zero out masked (invalid) positions
+    se_masked = se * valid_mask.to(dtype=se.dtype)
+
+    valid_counts = valid_mask.sum(dim=1).to(dtype=se.dtype)  # shape (B,)
+
+    valid_counts_safe = torch.where(valid_counts == 0, torch.ones_like(valid_counts), valid_counts)
+
+    per_sample_mse = se_masked.sum(dim=1) / valid_counts_safe  # shape (B,)
+
+    loss = per_sample_mse.mean()
+
+    return loss
 
 
 class SurvPredictor:
@@ -49,7 +101,7 @@ class SurvPredictor:
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self._model = nn.DataParallel(ClassifierArchitecture(input_dim, hidden_dim).to(self.device))
         self.epochs = epochs
-        self.criterion = nn.MSELoss()
+        self.criterion = ibs_like_loss
         self.optimizer = torch.optim.AdamW(self._model.parameters(), lr=lr)
         self.scorer = ModelScorer()
 
@@ -70,8 +122,10 @@ class SurvPredictor:
             val_dataloader: Optional[DataLoader] = None,
             early_stopping: bool = False,
             score_metric: str = 'neg_ci',
+            additional_val_metrics: Set[str] = {'ci'},
             patience: int = 10,
             min_delta=0.05,
+            val_times: List[int] = None,
             writer: Optional[SummaryWriter] = None):
         """Train model.
 
@@ -108,7 +162,9 @@ class SurvPredictor:
                 for _, _, X, y, time_to_event in tepoch:
                     # Prepare data
                     X = X.to(self.device).float()
-                    time_to_event = time_to_event.to(self.device).int().unsqueeze(1)
+                    # time_to_event is used both for computing true survival and for masking.
+                    # keep as a 1D or (B,1) tensor of real times (or integers) depending on your dataset
+                    time_to_event = time_to_event.to(self.device).float().unsqueeze(1)
                     y = y.to(self.device).float()
 
                     # Compute true survival function
@@ -126,7 +182,9 @@ class SurvPredictor:
                     ).view(batch_size, -1)
 
                     surv_pred = torch.exp(-hazards.cumsum(dim=1))
-                    loss = self.criterion(surv_pred, y_true_surv)
+
+                    loss = masked_loss(self.criterion, surv_pred, y_true_surv,
+                                       events=y, durations=time_to_event, times=times_tensor)
 
                     # Backward pass
                     self.optimizer.zero_grad()
@@ -150,38 +208,40 @@ class SurvPredictor:
             self.fit_times.append(epoch_time)
 
             if val_dataloader is not None:
-                X_pred, X_gt = self.predict(val_dataloader, times)
-                ci, ibs, ibs_bal = self.scorer.get_ci_ibs_ibs_bal(self, X_pred, X_gt, times)
-
+                if val_times is None:
+                    val_times = times
+                val_times_tensor = torch.as_tensor(val_times, device=self.device, dtype=torch.float32)
                 with torch.no_grad():
+                    X_pred, X_gt = self.predict(val_dataloader, val_times)
+                    calc_metrics = additional_val_metrics.union({score_metric.replace('neg_', '')})
+                    metrics = self.scorer.get_metrics(self, X_pred, X_gt, val_times, calc_metrics)
                     event_times_val = X_gt['time'] + X_gt['duration']
                     events_val = X_gt['failure']
 
                     event_times_val_tensor = torch.as_tensor(
-                        event_times_val, device=self.device, dtype=torch.int).unsqueeze(1)
+                        event_times_val, device=self.device, dtype=torch.float).unsqueeze(1)
                     events_val_tensor = torch.as_tensor(events_val, device=self.device, dtype=torch.float)
                     y_true_surv_val = self.get_survival_function(
-                        times_tensor, event_times_val_tensor, events_val_tensor)
+                        val_times_tensor, event_times_val_tensor, events_val_tensor)
                     y_true_surv_val = y_true_surv_val.to(self.device).float()
                     surv_val_pred = torch.Tensor(X_pred.iloc[0:, 2:].astype('float').values)
                     surv_val_pred = surv_val_pred.to(self.device).float()
-                    val_loss = self.criterion(surv_val_pred, y_true_surv_val).item()
+
+                    # Use masked loss for validation as well
+                    val_loss = masked_loss(self.criterion, surv_val_pred, y_true_surv_val,
+                                           events=events_val_tensor, durations=event_times_val_tensor,
+                                           times=val_times_tensor).item()
 
                 del X_pred, X_gt, event_times_val_tensor, events_val_tensor, y_true_surv_val, surv_val_pred
 
-                val_metrics = {
-                    'neg_ci': -ci,
-                    'ibs': ibs,
-                    'ibs_bal': ibs_bal,
-                    'loss': loss.item()
-                }
+                val_metrics = {metric: metrics[metric] for metric in calc_metrics}
 
-                val_score = val_metrics[score_metric]
+                val_score = val_metrics[score_metric] if not score_metric.startswith(
+                    'neg_') else -val_score[score_metric]
                 print("Val score:", val_score)
                 if writer is not None:
-                    writer.add_scalar(f'Val/ci', ci, epoch)
-                    writer.add_scalar(f'Val/ibs', ibs, epoch)
-                    writer.add_scalar(f'Val/ibs_bal', ibs_bal, epoch)
+                    for metric in val_metrics:
+                        writer.add_scalar(f'Val/{metric}', metrics[metric], epoch)
                     writer.add_scalar(f'Val/loss', val_loss, epoch)
 
                 if early_stopping:
@@ -220,6 +280,7 @@ class SurvPredictor:
                  - A DataFrame containing ground truth durations and event indicators if available,
                    otherwise an empty DataFrame.
          """
+        model_state = self._model.training
         self._model.eval()
         pred_chunks = []
         pred_serials = []
@@ -282,8 +343,11 @@ class SurvPredictor:
         else:
             df_gt = pd.DataFrame()
 
+        if model_state:
+            self._model.train()
+
         return df_surv, df_gt
-    
+
     def get_expected_time(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[np.ndarray, pd.DataFrame]:
         """Computes the expected time to event for observations in the dataloader 
         based on predicted survival functions.

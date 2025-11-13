@@ -45,7 +45,6 @@ class ClassifierArchitecture(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 64, t_embed_dim: float = 32):
         super(ClassifierArchitecture, self).__init__()
         self.t_embed = FourierTimeEncoding(t_embed_dim)
-        self.softplus = LearnableSoftplus()
         self.net = nn.Sequential(
             nn.Linear(input_dim + t_embed_dim, hidden_dim),
             # nn.Linear(input_dim + 1, hidden_dim),
@@ -55,8 +54,8 @@ class ClassifierArchitecture(nn.Module):
             nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1),
-            nn.Sigmoid(),
-            # LearnableSoftplus(),
+            # nn.Sigmoid(),
+            LearnableSoftplus(),
             # LearnableScaleParam(),
         )
 

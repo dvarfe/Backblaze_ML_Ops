@@ -5,8 +5,8 @@
 import os
 from glob import glob
 import pandas as pd
-OLD_DIR = 'Preprocessed_1/'
-NEW_DIR = 'Preprocessed_new/'
+OLD_DIR = 'Preprocessed/'
+NEW_DIR = 'Preprocessed_very_new/'
 
 paths = glob(f'{OLD_DIR}*.csv')
 os.makedirs(NEW_DIR)
