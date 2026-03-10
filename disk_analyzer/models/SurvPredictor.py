@@ -34,7 +34,69 @@ def ibs_like_loss(surv_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor
     return ((surv_pred - y_true) ** 2).mean()
 
 
+def estimate_inv_N(train_loader, times, device):
+    """
+    Estimate normalization coefficients over the whole training dataset.
+    """
+
+    times = times.to(device)
+    T = len(times)
+
+    N_total = torch.zeros(T, device=device)
+    with tqdm(train_loader, unit='batch') as tepoch:
+        for _, _, _, y, durations in tepoch:
+
+            events = y.float().to(device)
+            durations = durations.float().to(device)
+
+            t_col = durations[:, None]   # (B,1)
+            t_row = times[None, :]       # (1,T)
+
+            before = (t_col < t_row)
+
+            event_mask = events[:, None]
+
+            N_batch = before * event_mask + (~before)
+
+            N_total += N_batch.sum(dim=0)
+
+    inv_N = torch.where(N_total > 0, 1.0 / N_total, torch.zeros_like(N_total))
+
+    return inv_N
+
+
+def ibs_loss_torch(surv_pred, events, durations, times, inv_N):
+
+    events = events.float()
+    durations = durations.float()
+
+    t_col = durations[:, None]     # (B,1)
+    t_row = times[None, :]         # (1,T)
+
+    before = (t_col < t_row)
+
+    S = surv_pred
+
+    S2 = S * S
+    one_minus_S2 = (1 - S) * (1 - S)
+
+    event_mask = events[:, None]
+
+    brier = one_minus_S2
+    brier += before * event_mask * (S2 - one_minus_S2)
+
+    valid = (t_row <= t_col) | (events[:, None] == 1)
+    brier = brier * valid
+
+    bs_per_time = inv_N * brier.sum(dim=0)
+
+    time_diff = times[-1] - times[0]
+
+    return torch.trapezoid(bs_per_time, times) / time_diff
+
+
 def ibs_remain_torch(survival_train, survival_test, estimate, times: torch.Tensor, axis: int = -1):
+    # Это корректная реализация метрики на торче, проверено тестами. Но определять веса стоит по всей выборке, а не по батчу.
 
     device = estimate.device
 
@@ -171,6 +233,9 @@ class SurvPredictor:
             self.early_stop_counter = 0
             self.best_model_state = copy.deepcopy(self._model.state_dict())
 
+        print('Estimating inv_N')
+        inv_N = estimate_inv_N(train_dataloader, times_t, self.device)
+
         for epoch in range(self.epochs):
             epoch_loss = 0
             epoch_steps = 0
@@ -191,13 +256,22 @@ class SurvPredictor:
                     # y_true_surv = self.get_survival_function(times_tensor, time_to_event, y)
                     # y_true_surv = y_true_surv.to(self.device).float()
 
-                    survival_test = np.rec.fromarrays(
-                        [y.numpy().astype(bool), time_to_event.numpy()],
-                        names=['event', 'duration']
-                    )
+                    # survival_test = np.rec.fromarrays(
+                    #     [y.numpy().astype(bool), time_to_event.numpy()],
+                    #     names=['event', 'duration']
+                    # )
+
+                    events = y.to(self.device)
+                    durations = time_to_event.to(self.device)
                     # На каждом шаге семплируем случайную подвыборку times, иначе модель привыкает к фиксированным точкам прогнозирования
-                    sample_idc = torch.randperm(len(times_t))[::train_times_freq]
-                    times_sampled = torch.Tensor(sorted(times_t[sample_idc]))
+                    # Последняя точка шкалы всегда присутствует
+                    n_times = len(times_t)
+                    sample_idc = torch.randperm(n_times - 1, device=times_t.device)[::train_times_freq]
+                    sample_idc = torch.cat([sample_idc, torch.tensor([n_times - 1], device=times_t.device)])
+                    sample_idc = sample_idc.sort().values
+
+                    times_sampled = times_t[sample_idc]
+                    inv_N_sampled = inv_N[sample_idc]
 
                     # Forward pass
                     batch_size = X.size(0)
@@ -211,7 +285,8 @@ class SurvPredictor:
 
                     surv_pred = torch.exp(-hazards.cumsum(dim=1))
 
-                    loss = ibs_remain_torch(None, survival_test, surv_pred, times=times_sampled)
+                    loss = ibs_loss_torch(surv_pred, events, durations, times_sampled, inv_N_sampled)
+                    # loss = ibs_remain_torch(None, survival_test, surv_pred, times=times_sampled)
                     # loss = masked_loss(self.criterion, surv_pred, y_true_surv,
                     #    events=y, durations=time_to_event, times=times_tensor)
 
