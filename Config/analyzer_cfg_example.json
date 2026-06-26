@@ -1,0 +1,4 @@
+{
+    "batchsize": 500000,
+    "paths": ["Data/Sources"]
+}

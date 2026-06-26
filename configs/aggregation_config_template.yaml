@@ -1,0 +1,47 @@
+# =============================================================================
+# ШАБЛОН конфигурации агрегации (reference only — не запускать напрямую).
+# Рабочий файл: configs/aggregation_config.yaml
+#
+# Стандартная агрегация:
+#   python scripts/run_aggregation.py --cuda 0
+# Квантильная агрегация:
+#   python scripts/run_aggregation.py --mode quantile --cuda 0
+#   (используй поля из секции «quantile» ниже вместо «standard»)
+# =============================================================================
+
+# --- standard mode (AggConfig) ---
+standard:
+  base_exp_num: 155             # Exp с обученными моделями
+  dataset_train_samples: 20     # train_samples датасета базового Exp
+  model_train_samples: 20       # train_samples, на которых обучена model_name
+  sample_grid: [1, 10]          # число последних наблюдений для агрегации
+  test_samples: [25]            # размер тестовой выборки при скоринге
+  model_name: "0_DDH"           # id модели в Artifacts/Exp_<base>/models/
+  data_folder: Data/Preprocessed_old
+  data_ext: csv
+  metrics: [ci, ibs, ibs_bal]
+  aggregator_preset: default    # default | minimal
+  exp_desc: ""
+  train_batchsize: 512
+  times: [0, 730]               # опционально; по умолчанию из data config Exp
+
+# --- quantile mode (QuantileAggConfig) ---
+quantile:
+  exp_num: 154                  # номер нового Exp для результатов
+  base_exp_num: 139
+  data_folder: Data/Preprocessed_new_data
+  data_samples: 20
+  data_ext: parquet
+  model_name: "7_CoxTILN"
+  sample_grid: [1]
+  quantiles: [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]
+  quantile_mode: failures_only  # failures_only | all
+  metrics: [ci, ibs, ibs_bal]
+  aggregator_preset: minimal    # default | minimal
+  max_obs_day: 1600
+  max_time: 600
+  score_batchsize: 512
+  seed: 42
+
+# aggregator_preset "default": n_dist, t_dist, prob_dist, geom (см. presets.py)
+# aggregator_preset "minimal": n_dist weight=0.1

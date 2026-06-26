@@ -1,9 +1,15 @@
-Config
+Config/*
+BACKUP/
+Data/
+!Config/*_example.json
 Prepare Data.ipynb
 Pipfile.lock
 __pycache__
 .vscode
 .mypy_cache
+.idea
+docs/_build
+.ipynb_checkpoints
 Models/
 Predictions
 Preprocessed

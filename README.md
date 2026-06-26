@@ -20,7 +20,7 @@
 
 4. **Обучение модели**:
    - Поддерживается обучение и дообучение моделей.(1 б.)
-   - Доступны две модели - логистическая регрессия и многслойный персептрон.(1 б.)
+   - Доступны модели: логистическая регрессия, MLP (NN), Cox (TV/TISN/TILN), SurvPredictor, Dynamic Deep Hit (DDH), RSF и GBSA (scikit-survival).(1 б.)
    - Конфигурация модели при помощи JSON-файла.
 
 5. **Валидация модели**:
@@ -136,13 +136,41 @@ python main.py
 >> save_best_model -m ci
 ```
 
+## Research workflow
+
+Помимо production CLI (`main.py`), в репозитории есть research-слой для grid search и агрегации предсказаний.
+
+**Паттерн запуска:** один рабочий YAML + один шаблон со всеми параметрами. Перед запуском правишь рабочий файл; при старте он копируется в `Artifacts/Exp_NNN/experiment_config.yaml`.
+
+```bash
+# Эксперимент: правишь configs/experiment_config.yaml, затем
+python scripts/run_experiment.py --cuda 0
+
+# Агрегация: правишь configs/aggregation_config.yaml, затем
+python scripts/run_aggregation.py --cuda 0
+python scripts/run_aggregation.py --mode quantile --cuda 0   # квантильный режим
+```
+
+- Рабочий конфиг эксперимента: [`configs/experiment_config.yaml`](configs/experiment_config.yaml)
+- Шаблон (все методы и параметры): [`configs/experiment_config_template.yaml`](configs/experiment_config_template.yaml)
+- Рабочий конфиг агрегации: [`configs/aggregation_config.yaml`](configs/aggregation_config.yaml)
+- Шаблон агрегации: [`configs/aggregation_config_template.yaml`](configs/aggregation_config_template.yaml)
+- Ноутбуки для анализа: [`notebooks/`](notebooks/)
+- Результаты экспериментов: [`Artifacts/README.md`](Artifacts/README.md) (локально, gitignored)
+
 ## Структура проекта
 
-- `Config/`: Конфигурационные файлы.
+- `Config/`: Конфигурационные файлы production pipeline (см. `Config/*_example.json`).
+- `configs/experiment_config.yaml`: рабочий YAML для research-экспериментов.
+- `configs/experiment_config_template.yaml`: справочник всех параметров и методов.
+- `configs/aggregation_config.yaml` / `aggregation_config_template.yaml`: то же для агрегации.
 - `Data/`: Данные (сырые и предобработанные).
-- `disk_analyzer/`: Основной модуль системы.
+- `disk_analyzer/`: Основной модуль системы (`controller`, `stages`, `models`, `research`).
 - `docs/`: Документация.
-- `Models/`: Сохраненные модели.
+- `notebooks/`: Jupyter-ноутбуки (aggregation, analysis, grid_search, dev).
+- `scripts/`: Entry points для экспериментов и утилиты (`data/`, `scoring/`).
+- `Artifacts/`: Результаты экспериментов Exp_NNN (gitignored, см. README).
+- `Models/`: Сохраненные модели production pipeline.
 - `Predictions/`: Результаты прогнозов.
 - `Reports/`: Отчеты.
 - `tests/`: Тесты для проверки функциональности системы.

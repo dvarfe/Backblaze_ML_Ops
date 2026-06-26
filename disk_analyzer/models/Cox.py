@@ -1,3 +1,5 @@
+from typing import Union
+
 import pandas as pd
 import numpy as np
 import torch
@@ -20,14 +22,14 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.feature_cols = None
 
-    def _batch_to_df(self, batch):
+    def _batch_to_df(self, batch, columns):
         serial_numbers, obs_times, X, y, durations = batch
         serial_numbers = np.array(serial_numbers)
         obs_times = np.array(obs_times)
         y = np.array(y).astype(int)
         durations = np.array(durations)
         features = X.cpu().numpy() if torch.is_tensor(X) else np.array(X)
-        df = pd.DataFrame(features)
+        df = pd.DataFrame(features, columns=columns)
         df[self.id_col] = serial_numbers
         df[self.time_col] = obs_times
         df[self.event_col] = y  # здесь можно поставить нарезкозависимое преобразование
@@ -37,11 +39,12 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
     def fit(self, train_dataloader: DataLoader):
         dfs = []
         for batch in tqdm(train_dataloader, desc="Collecting data for Cox fit"):
-            batch_df = self._batch_to_df(batch)
+            batch_df = self._batch_to_df(batch, columns=train_dataloader.dataset.feature_cols)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
         df_tv = self._to_start_stop(df_all)
-        super().fit(df_tv, id_col=self.id_col, start_col='start', stop_col='stop', event_col=self.event_col)
+        df_to_fit = df_tv.drop(columns=[self.time_col])
+        super().fit(df_to_fit, id_col=self.id_col, start_col='start', stop_col='stop', event_col=self.event_col, show_progress=True)
         self.feature_cols = [c for c in df_tv.columns if c not in [
             self.id_col, 'start', 'stop', self.event_col, 'duration']]
         return self
@@ -72,7 +75,13 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         surv = baseline_surv_interp[None, :] ** partial_haz[:, None]
         return surv
 
-    def predict(self, dataloader: DataLoader, times: np.ndarray):
+    def predict(self, data: Union[DataLoader, pd.DataFrame], times: np.ndarray):
+        if type(data) == DataLoader:
+            return self.predict_dataloader(data, times)
+        elif type(data) == pd.DataFrame:
+            return self.predict_dataframe(data, times)
+
+    def predict_dataloader(self, dataloader: DataLoader, times: np.ndarray):
         """
         Собирает все данные из DataLoader в один DataFrame, затем предсказывает survival-функции для всех сразу.
         Возвращает: (df_surv, df_gt)
@@ -80,7 +89,7 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
         # Сначала соберём весь датасет в один DataFrame
         dfs = []
         for batch in tqdm(dataloader, desc="Collecting data for Cox prediction"):
-            batch_df = self._batch_to_df(batch)
+            batch_df = self._batch_to_df(batch, dataloader.dataset.feature_cols)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
 
@@ -110,6 +119,47 @@ class CoxTimeVaryingEstimator(CoxTimeVaryingFitter):
 
         return df_surv, df_gt
 
+    def predict_dataframe(self, df: pd.DataFrame, times: np.ndarray):
+
+        df_all = df.copy()
+
+        X_feat = df_all[self.feature_cols]
+        times = np.array(times)
+
+        surv = self._get_survival_function(X_feat, times)
+
+        pred_values = np.column_stack([df_all[self.time_col].values, surv])
+        serial_numbers_flat = df_all[self.id_col].values
+
+        columns = ['time'] + times.tolist()
+        df_surv = pd.DataFrame(pred_values, columns=columns)
+
+        df_surv.insert(0, 'serial_number', serial_numbers_flat)
+        df_surv['time'] = df_surv['time'].astype('int32')
+
+        # ground truth
+        if 'duration' in df_all.columns:
+            gt_values = np.column_stack([
+                df_all[self.time_col].values,
+                df_all['duration'].values,
+                df_all[self.event_col].values
+            ])
+
+            df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
+            df_gt.insert(0, 'serial_number', serial_numbers_flat)
+
+            df_gt = df_gt.astype({
+                'serial_number': 'string',
+                'time': 'int32',
+                'duration': 'int32'
+            })
+
+            df_gt['failure'] = df_gt['failure'] == 1
+        else:
+            df_gt = pd.DataFrame()
+
+        return df_surv, df_gt
+
     def get_expected_time(self, dataloader: DataLoader, times: np.ndarray):
         df_surv, df_gt = self.predict(dataloader, times)
         return self.get_expected_time_by_predictions(df_surv, times), df_gt
@@ -129,14 +179,14 @@ class CoxTimeInvariantSNFitter(CoxPHFitter):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.feature_cols = None
 
-    def _batch_to_df(self, batch):
+    def _batch_to_df(self, batch, columns):
         serial_numbers, obs_times, X, y, durations = batch
         serial_numbers = np.array(serial_numbers)
         obs_times = np.array(obs_times)
         y = np.array(y).astype(int)
         durations = np.array(durations)
         features = X.cpu().numpy() if torch.is_tensor(X) else np.array(X)
-        df = pd.DataFrame(features)
+        df = pd.DataFrame(features, columns=columns)
         df[self.id_col] = serial_numbers
         df[self.time_col] = obs_times
         df[self.event_col] = y
@@ -146,7 +196,7 @@ class CoxTimeInvariantSNFitter(CoxPHFitter):
     def fit(self, train_dataloader: DataLoader):
         dfs = []
         for batch in tqdm(train_dataloader, desc="Collecting data for Cox fit"):
-            batch_df = self._batch_to_df(batch)
+            batch_df = self._batch_to_df(batch, columns=train_dataloader.dataset.feature_cols)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
         df_tv = self._to_start_stop(df_all)
@@ -184,7 +234,7 @@ class CoxTimeInvariantSNFitter(CoxPHFitter):
         # Сначала соберём весь датасет в один DataFrame
         dfs = []
         for batch in tqdm(dataloader, desc="Collecting data for Cox prediction"):
-            batch_df = self._batch_to_df(batch)
+            batch_df = self._batch_to_df(batch, dataloader.dataset.feature_cols)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
 
@@ -237,14 +287,14 @@ class CoxTimeInvariantLNFitter(CoxPHFitter):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.feature_cols = None
 
-    def _batch_to_df(self, batch):
+    def _batch_to_df(self, batch, columns):
         serial_numbers, obs_times, X, y, durations = batch
         serial_numbers = np.array(serial_numbers)
         obs_times = np.array(obs_times)
         y = np.array(y).astype(int)
         durations = np.array(durations)
         features = X.cpu().numpy() if torch.is_tensor(X) else np.array(X)
-        df = pd.DataFrame(features)
+        df = pd.DataFrame(features, columns=columns)
         df[self.id_col] = serial_numbers
         df[self.time_col] = obs_times
         df[self.event_col] = y
@@ -254,10 +304,11 @@ class CoxTimeInvariantLNFitter(CoxPHFitter):
     def fit(self, train_dataloader: DataLoader):
         dfs = []
         for batch in tqdm(train_dataloader, desc="Collecting data for Cox fit"):
-            batch_df = self._batch_to_df(batch)
+            batch_df = self._batch_to_df(batch, train_dataloader.dataset.feature_cols)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
         df_to_fit = df_all.drop(columns=[self.time_col, self.id_col])
+        # raise ValueError()
         super().fit(df_to_fit, duration_col='duration', event_col=self.event_col)
         self.feature_cols = [c for c in df_all.columns if c not in [
             self.id_col, self.time_col, self.event_col, 'duration']]
@@ -280,7 +331,7 @@ class CoxTimeInvariantLNFitter(CoxPHFitter):
         # Сначала соберём весь датасет в один DataFrame
         dfs = []
         for batch in tqdm(dataloader, desc="Collecting data for Cox prediction"):
-            batch_df = self._batch_to_df(batch)
+            batch_df = self._batch_to_df(batch, dataloader.dataset.feature_cols)
             dfs.append(batch_df)
         df_all = pd.concat(dfs, ignore_index=True)
 

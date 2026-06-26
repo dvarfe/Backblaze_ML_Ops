@@ -1,4 +1,4 @@
-from typing import Tuple, Set
+from typing import Dict, List, Set, Tuple
 
 import pandas as pd
 import numpy as np
@@ -200,3 +200,36 @@ class ModelScorer():
             metrics_dict['iauc'] = iauc_score
 
         return metrics_dict
+
+    def bootstrap_metrics(
+        self,
+        model,
+        df_pred: pd.DataFrame,
+        df_gt: pd.DataFrame,
+        times: np.ndarray,
+        metrics: Set[str],
+        n_bootstrap: int,
+        seed: int = 42,
+        axis: int = -1,
+        df_train=None,
+    ) -> List[Dict[str, float]]:
+        """Bootstrap row-level resampling of predictions to obtain metric samples."""
+        if n_bootstrap <= 0:
+            raise ValueError("n_bootstrap must be positive")
+
+        n = len(df_pred)
+        if len(df_gt) != n:
+            raise ValueError("df_pred and df_gt must have the same number of rows")
+
+        rng = np.random.default_rng(seed)
+        results: List[Dict[str, float]] = []
+
+        for _ in range(n_bootstrap):
+            idx = rng.integers(0, n, size=n)
+            pred_b = df_pred.iloc[idx].reset_index(drop=True)
+            gt_b = df_gt.iloc[idx].reset_index(drop=True)
+            results.append(
+                self.get_metrics(model, pred_b, gt_b, times, metrics, axis, df_train)
+            )
+
+        return results

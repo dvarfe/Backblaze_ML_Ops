@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -65,32 +66,54 @@ def estimate_inv_N(train_loader, times, device):
     return inv_N
 
 
-def ibs_loss_torch(surv_pred, events, durations, times, inv_N):
-
+def ibs_loss_torch(surv_pred, events, durations, times, inv_N=None):
+    '''
+    Если inv_N=None — веса оцениваются по батчу потайм-пойнтово,
+    как в ibs_remain_torch: для каждого t считается число валидных наблюдений.
+    '''
     events = events.float()
     durations = durations.float()
 
-    t_col = durations[:, None]     # (B,1)
-    t_row = times[None, :]         # (1,T)
+    t_col = durations[:, None]   # (B, 1)
+    t_row = times[None, :]       # (1, T)
 
-    before = (t_col < t_row)
+    before = (t_col < t_row)     # (B, T)
 
     S = surv_pred
-
     S2 = S * S
     one_minus_S2 = (1 - S) * (1 - S)
 
-    event_mask = events[:, None]
+    event_mask = events[:, None]  # (B, 1)
 
     brier = one_minus_S2
     brier += before * event_mask * (S2 - one_minus_S2)
 
-    valid = (t_row <= t_col) | (events[:, None] == 1)
-    brier = brier * valid
+    if inv_N is None:
+        # Для каждого t: валидны те, у кого duration >= t (censored тоже),
+        # плюс те, у кого duration < t и events == 1 (умершие до t).
+        # Это зеркало логики ibs_remain_torch:
+        #   before & event==1  → считаем
+        #   ~before            → считаем всегда (duration >= t)
+        B, T = surv_pred.shape
+        ones = torch.ones(B, T, dtype=surv_pred.dtype, device=surv_pred.device)
+        N_per_time = torch.where(
+            before,
+            event_mask.expand(B, T),   # до t: только события
+            ones                        # после t: все
+        ).sum(dim=0)                    # (T,)
 
-    bs_per_time = inv_N * brier.sum(dim=0)
+        inv_N = torch.where(
+            N_per_time > 0,
+            1.0 / N_per_time,
+            torch.zeros_like(N_per_time)
+        )  # (T,)
+    else:
+        valid = (t_row <= t_col) | (event_mask == 1)
+        brier = brier * valid
 
-    time_diff = times[-1] - times[0]
+    bs_per_time = inv_N * brier.sum(dim=0)   # (T,)
+
+    time_diff = (times[-1] - times[0]).item() if times[-1] > times[0] else 1.0
 
     return torch.trapezoid(bs_per_time, times) / time_diff
 
@@ -150,6 +173,348 @@ def ibs_remain_torch(survival_train, survival_test, estimate, times: torch.Tenso
     raise ValueError(f"axis must be -1, 0, or 1; got {axis}")
 
 
+# class SurvPredictor:
+#     """Survival predictor.
+
+#     Attributes:
+#         device (str): Device where the model and tensors are allocated ('cuda' or 'cpu').
+#         _model (nn.Module): Neural network model instance.
+#         criterion (nn.Module): Loss function used for training.
+#         optimizer (torch.optim.Optimizer): Optimizer for training the model.
+#         writer (Optional[SummaryWriter]): TensorBoard writer instance.
+#     """
+
+#     def __init__(self,
+#                  input_dim: int,
+#                  hidden_dim: int = 64,
+#                  lr: float = 1e-3,
+#                  epochs: int = 100,
+#                  device: Optional[str] = None):
+#         """Initialize survival predictor.
+
+#         Args:
+#             input_dim: Number of input features
+#             hidden_dim: Number of hidden units (default: 64)
+#             lr: Learning rate (default: 1e-3)
+#             epochs: Number of training epochs (default: 100)
+#             device: Computation device ('cuda' or 'cpu')
+#         """
+#         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+#         self._model = nn.DataParallel(ClassifierArchitecture(input_dim, hidden_dim).to(self.device))
+#         self.epochs = epochs
+#         self.criterion = ibs_like_loss
+#         self.optimizer = torch.optim.AdamW(self._model.parameters(), lr=lr)
+#         self.scorer = ModelScorer()
+
+#         # Training metrics
+#         self.loss: List[float] = []
+#         self.fit_times: List[float] = []
+#         self.best_loss = float('inf')
+
+#     def get_survival_function(self, times, event_times, status):
+#         event_times = event_times.view(-1, 1)  # (B, 1)
+#         status = status.view(-1, 1).float()    # (B, 1)
+#         times = times.view(1, -1)              # (1, T)
+#         after_event = (times >= event_times).float()
+#         return 1.0 - after_event * status
+
+#     def fit(self,
+#             train_dataloader: DataLoader,
+#             times: np.ndarray,
+#             val_dataloader: Optional[DataLoader] = None,
+#             early_stopping: bool = False,
+#             score_metric: str = 'neg_ci',
+#             additional_val_metrics: Set[str] = {'ci'},
+#             patience: int = 10,
+#             min_delta=0.05,
+#             train_times_freq: int = 1,
+#             gradient_accumulation_steps: int = 1,
+#             scheduler: Optional[_LRScheduler] = None,
+#             writer: Optional[SummaryWriter] = None):
+#         """Train model.
+
+#         Args:
+#             ...
+#             gradient_accumulation_steps: Number of batches to accumulate gradients over
+#                 before performing an optimizer step (default: 1, i.e. no accumulation).
+#             writer: Optional SummaryWriter for logging training metrics (e.g., for TensorBoard)
+#         """
+#         self._model.train()
+#         global_step = 0
+
+#         times_t = torch.as_tensor(times, device=self.device, dtype=torch.float32)
+#         val_times = times[::5]
+#         val_times_tensor = torch.as_tensor(val_times, device=self.device, dtype=torch.float32)
+
+#         if early_stopping:
+#             if val_dataloader is None:
+#                 raise ValueError("Validation DataLoader must be provided for early stopping")
+#             self.best_score = np.inf
+#             self.early_stop_counter = 0
+#             self.best_model_state = copy.deepcopy(self._model.state_dict())
+
+#         print('Estimating inv_N')
+#         inv_N = estimate_inv_N(train_dataloader, times_t, self.device)
+
+#         for epoch in range(self.epochs):
+#             epoch_loss = 0
+#             epoch_steps = 0
+#             start_time = time.time()
+
+#             self.optimizer.zero_grad()
+
+#             with tqdm(train_dataloader, unit='batch') as tepoch:
+#                 tepoch.set_description(f"Epoch {epoch}")
+
+#                 for batch_idx, (_, _, X, y, time_to_event) in enumerate(tepoch):
+#                     X = X.to(self.device).float()
+#                     events = y.to(self.device)
+#                     durations = time_to_event.to(self.device)
+
+#                     n_times = len(times_t)
+#                     sample_idc = torch.randperm(n_times - 2, device=times_t.device)[::train_times_freq] + 1
+#                     sample_idc = torch.cat([torch.tensor([0], device=times_t.device), sample_idc,
+#                                            torch.tensor([n_times - 1], device=times_t.device)])
+#                     sample_idc = sample_idc.sort().values
+
+#                     times_sampled = times_t[sample_idc]
+#                     inv_N_sampled = inv_N[sample_idc]
+
+#                     batch_size = X.size(0)
+#                     expanded_X = X.unsqueeze(1).expand(-1, len(times_sampled), -1)
+#                     expanded_times = times_sampled.view(1, -1, 1).expand(batch_size, -1, -1)
+
+#                     hazards = self._model(
+#                         expanded_X.reshape(-1, expanded_X.size(-1)),
+#                         expanded_times.reshape(-1, 1)
+#                     ).view(batch_size, -1)
+
+#                     surv_pred = torch.exp(-hazards.cumsum(dim=1))
+
+#                     # Масштабируем loss, чтобы усреднение по accumulation_steps
+#                     # давало тот же эффективный learning rate, что и без аккумуляции
+#                     inv_N_sampled = None  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
+
+#                     y_true_surv = self.get_survival_function(times_sampled.to(self.device), time_to_event.to(self.device), events)
+
+#                     loss = ibs_like_loss(surv_pred, y_true_surv) / gradient_accumulation_steps
+#                     # loss = ibs_loss_torch(
+#                     #     surv_pred, events, durations, times_sampled, inv_N_sampled
+#                     # ) / gradient_accumulation_steps
+
+#                     loss.backward()
+
+#                     loss_value = loss.item() * gradient_accumulation_steps  # возвращаем исходный масштаб для логов
+
+#                     # Шаг оптимизатора делаем раз в gradient_accumulation_steps батчей,
+#                     # либо в конце эпохи (чтобы не потерять остаток)
+#                     is_last_batch = (batch_idx + 1 == len(train_dataloader))
+#                     if (batch_idx + 1) % gradient_accumulation_steps == 0 or is_last_batch:
+#                         self.optimizer.step()
+#                         self.optimizer.zero_grad()
+#                         global_step += 1
+#                         tepoch.set_postfix(loss=loss_value)
+
+#                         if writer is not None:
+#                             writer.add_scalar('Loss/train_batch', loss_value, global_step)
+
+#                     epoch_loss += loss_value
+#                     epoch_steps += 1
+
+#             # Epoch statistics
+#             avg_epoch_loss = epoch_loss / epoch_steps
+#             epoch_time = time.time() - start_time
+#             self.loss.append(avg_epoch_loss)
+#             self.fit_times.append(epoch_time)
+
+#             if val_dataloader is not None:
+#                 with torch.no_grad():
+#                     X_pred, X_gt = self.predict(val_dataloader, val_times)
+#                     calc_metrics = additional_val_metrics.union({score_metric.replace('neg_', '')})
+#                     metrics = self.scorer.get_metrics(self, X_pred, X_gt, val_times, calc_metrics)
+#                     event_times_val = X_gt['time'] + X_gt['duration']
+#                     events_val = X_gt['failure']
+
+#                     event_times_val_tensor = torch.as_tensor(
+#                         event_times_val, device=self.device, dtype=torch.float).unsqueeze(1)
+#                     events_val_tensor = torch.as_tensor(events_val, device=self.device, dtype=torch.float)
+
+#                     # y_true_surv_val = self.get_survival_function(
+#                     #     val_times_tensor, event_times_val_tensor, events_val_tensor)
+#                     # y_true_surv_val = y_true_surv_val.to(self.device).float()
+
+#                     survival_test_val = np.rec.fromarrays(
+#                         [X_gt['failure'].values.astype(bool), X_gt['duration'].values],
+#                         names=['event', 'duration']
+#                     )
+
+#                     surv_val_pred = torch.Tensor(X_pred.iloc[0:, 2:].astype('float').values)
+#                     surv_val_pred = surv_val_pred.to(self.device).float()
+
+#                     # Use masked loss for validation as well
+#                     # val_loss = masked_loss(self.criterion, surv_val_pred, y_true_surv_val,
+#                     #                        events=events_val_tensor, durations=event_times_val_tensor,
+#                     #                        times=val_times_tensor).item()
+
+#                     val_loss = ibs_remain_torch(None, survival_test_val, surv_val_pred, times=val_times_tensor)
+
+#                 # del X_pred, X_gt, event_times_val_tensor, events_val_tensor, surv_val_pred
+
+#                 val_metrics = {metric: metrics[metric] for metric in calc_metrics}
+
+#                 val_score = val_metrics[score_metric] if not score_metric.startswith(
+#                     'neg_') else -val_metrics[score_metric]
+#                 print("Val score:", val_score)
+#                 if writer is not None:
+#                     for metric in val_metrics:
+#                         writer.add_scalar(f'Val/{metric}', metrics[metric], epoch)
+#                     writer.add_scalar(f'Val/loss', val_loss, epoch)
+
+#                 if early_stopping:
+#                     if val_score < self.best_score - min_delta:
+#                         self.best_score = val_score
+#                         self.early_stop_counter = 0
+#                         self.best_model_state = copy.deepcopy(self._model.state_dict())
+#                     else:
+#                         self.early_stop_counter += 1
+#                         if self.early_stop_counter >= patience:
+#                             print(f"Early stopping triggered at epoch {epoch}!")
+#                             self._model.load_state_dict(self.best_model_state)
+#                             break
+
+#             # TensorBoard logging
+#             if writer is not None:
+#                 if scheduler is not None:
+#                     writer.add_scalar('LR/epoch', scheduler.get_last_lr()[0], epoch)
+#                 writer.add_scalar('Loss/train_epoch', avg_epoch_loss, epoch)
+#                 writer.add_scalar('Time/epoch', epoch_time, epoch)
+
+#             if scheduler is not None:
+#                 scheduler.step()
+
+#     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
+#         """Predicts survival functions for observations from the dataloader.
+
+#          For each observation, this method predicts the survival probability
+#          over a predefined set of time points using the trained model.
+
+#          Args:
+#              dataloader (DataLoader): A DataLoader providing batches of data in the form:
+#                  (serial_numbers, obs_times, X, y, real_durations)
+#              times (np.ndarray, optional): Array of time points at which the survival function is evaluated.
+#                  Defaults to TIMES.
+
+#          Returns:
+#              Tuple[pd.DataFrame, pd.DataFrame]:
+#                  - A DataFrame containing predicted survival functions for each observation.
+#                    Columns: ['serial_number', 'time', t1, t2, ..., tN]
+#                  - A DataFrame containing ground truth durations and event indicators if available,
+#                    otherwise an empty DataFrame.
+#          """
+#         model_state = self._model.training
+#         self._model.eval()
+#         pred_chunks = []
+#         pred_serials = []
+#         gt_chunks = []
+
+#         with torch.no_grad():
+#             times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
+#             n_times = len(times)
+
+#             for serial_numbers, obs_times, X, y, real_durations in tqdm(dataloader):
+#                 batch_size = X.size(0)
+#                 serial_numbers = np.array(serial_numbers)
+
+#                 X = X.to(self.device)
+#                 obs_times = obs_times.to(self.device).int()
+
+#                 expanded_X = X.unsqueeze(1).expand(-1, n_times, -1)
+#                 expanded_times = times_tensor.reshape(1, -1, 1).expand(batch_size, -1, -1)
+#                 hazards = self._model(expanded_X.reshape(batch_size * len(times), -1),
+#                                       expanded_times.reshape(batch_size * len(times), -1))
+#                 hazards = hazards.view(batch_size, n_times)
+#                 surv_probs = torch.exp(-hazards.cumsum(dim=1))
+
+#                 pred_block = torch.column_stack([
+#                     obs_times,
+#                     surv_probs
+#                 ])
+
+#                 pred_chunks.append(pred_block)
+#                 pred_serials.append(serial_numbers)
+
+#                 if (real_durations != -1).any():
+#                     real_durations = real_durations.to(self.device)
+#                     y = y.to(self.device)
+#                     gt_block = torch.column_stack([
+#                         obs_times,
+#                         real_durations,
+#                         y
+#                     ])
+#                     gt_chunks.append(gt_block)
+
+#         pred_values = torch.concat(pred_chunks, dim=0).cpu().numpy()
+#         serial_numbers_flat = np.concatenate(pred_serials)
+
+#         df_surv = pd.DataFrame(pred_values, columns=['time'] + times.tolist())
+#         df_surv.insert(0, 'serial_number', serial_numbers_flat)
+#         df_surv['time'] = df_surv['time'].astype('int32')
+#         df_surv[times] = df_surv[times].astype('float32')
+
+#         if gt_chunks:
+#             gt_values = torch.concat(gt_chunks, dim=0).cpu().numpy()
+#             df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
+#             df_gt.insert(0, 'serial_number', serial_numbers_flat)
+#             df_gt = df_gt.astype({
+#                 'serial_number': 'string',
+#                 'time': 'int32',
+#                 'duration': 'int32'
+#             })
+#             df_gt['failure'] = df_gt['failure'] == 1
+#         else:
+#             df_gt = pd.DataFrame()
+
+#         if model_state:
+#             self._model.train()
+
+#         return df_surv, df_gt
+
+#     def get_expected_time(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[np.ndarray, pd.DataFrame]:
+#         """Computes the expected time to event for observations in the dataloader 
+#         based on predicted survival functions.
+
+#         Args:
+#             dataloader (DataLoader): A DataLoader providing data for prediction.
+#             times (np.ndarray, optional): Array of time points used for evaluating the survival function.
+#                 Defaults to TIMES.
+
+#         Returns:
+#             Tuple[np.ndarray, pd.DataFrame]:
+#                 - A numpy array of expected times to event for each observation.
+#                 - A DataFrame containing ground truth durations and event indicators if available,
+#                   otherwise an empty DataFrame.
+#         """
+#         df_survival, df_gt = self.predict(dataloader, times=times)
+#         return self.get_expected_time_by_predictions(df_survival, times), df_gt
+
+#     def get_expected_time_by_predictions(self, X_pred: pd.DataFrame, times: np.ndarray) -> np.ndarray:
+#         """Calculates expected time to event based on predicted survival functions.
+
+#         The expected time is computed as the area under the survival curve
+#         for each observation using trapezoidal rule.
+
+#         Args:
+#             X_pred (pd.DataFrame): DataFrame containing predicted survival functions.
+#                 Columns: ['serial_number', 'time', t1, t2, ..., tN]
+#             times (np.ndarray): Array of time points corresponding to the survival functions.
+
+#         Returns:
+#             np.ndarray: A numpy array of expected times to event for each observation.
+#         """
+#         X = X_pred
+#         survival_vec = X.drop(['serial_number', 'time'], axis='columns').values
+#         return np.trapz(y=survival_vec, x=times)
+
 class SurvPredictor:
     """Survival predictor.
 
@@ -179,7 +544,7 @@ class SurvPredictor:
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self._model = nn.DataParallel(ClassifierArchitecture(input_dim, hidden_dim).to(self.device))
         self.epochs = epochs
-        self.criterion = ibs_like_loss
+        self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.AdamW(self._model.parameters(), lr=lr)
         self.scorer = ModelScorer()
 
@@ -189,11 +554,10 @@ class SurvPredictor:
         self.best_loss = float('inf')
 
     def get_survival_function(self, times, event_times, status):
-        event_times = event_times.view(-1, 1)  # (B, 1)
-        status = status.view(-1, 1).float()    # (B, 1)
-        times = times.view(1, -1)              # (1, T)
-        after_event = (times >= event_times).float()
-        return 1.0 - after_event * status
+        surv = torch.ones((len(event_times), len(times)))
+        for i, (t, s) in enumerate(zip(event_times, status)):
+            surv[i, times >= t] = 0 if s else 1
+        return surv
 
     def fit(self,
             train_dataloader: DataLoader,
@@ -201,10 +565,8 @@ class SurvPredictor:
             val_dataloader: Optional[DataLoader] = None,
             early_stopping: bool = False,
             score_metric: str = 'neg_ci',
-            additional_val_metrics: Set[str] = {'ci'},
             patience: int = 10,
             min_delta=0.05,
-            train_times_freq: int = 1,
             writer: Optional[SummaryWriter] = None):
         """Train model.
 
@@ -220,11 +582,8 @@ class SurvPredictor:
             writer: Optional SummaryWriter for logging training metrics (e.g., for TensorBoard)
     """
         self._model.train()
+        times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
         global_step = 0
-
-        times_t = torch.as_tensor(times, device=self.device, dtype=torch.float32)
-        val_times = times[::5]  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        val_times_tensor = torch.as_tensor(val_times, device=self.device, dtype=torch.float32)
 
         if early_stopping:
             if val_dataloader is None:
@@ -232,9 +591,6 @@ class SurvPredictor:
             self.best_score = np.inf
             self.early_stop_counter = 0
             self.best_model_state = copy.deepcopy(self._model.state_dict())
-
-        print('Estimating inv_N')
-        inv_N = estimate_inv_N(train_dataloader, times_t, self.device)
 
         for epoch in range(self.epochs):
             epoch_loss = 0
@@ -247,36 +603,17 @@ class SurvPredictor:
                 for _, _, X, y, time_to_event in tepoch:
                     # Prepare data
                     X = X.to(self.device).float()
-                    # time_to_event is used both for computing true survival and for masking.
-                    # keep as a 1D or (B,1) tensor of real times (or integers) depending on your dataset
-                    # time_to_event = time_to_event.to(self.device).float().unsqueeze(1)
-                    # y = y.to(self.device).float()
+                    time_to_event = time_to_event.to(self.device).int().unsqueeze(1)
+                    y = y.to(self.device).float()
 
                     # Compute true survival function
-                    # y_true_surv = self.get_survival_function(times_tensor, time_to_event, y)
-                    # y_true_surv = y_true_surv.to(self.device).float()
-
-                    # survival_test = np.rec.fromarrays(
-                    #     [y.numpy().astype(bool), time_to_event.numpy()],
-                    #     names=['event', 'duration']
-                    # )
-
-                    events = y.to(self.device)
-                    durations = time_to_event.to(self.device)
-                    # На каждом шаге семплируем случайную подвыборку times, иначе модель привыкает к фиксированным точкам прогнозирования
-                    # Последняя точка шкалы всегда присутствует
-                    n_times = len(times_t)
-                    sample_idc = torch.randperm(n_times - 1, device=times_t.device)[::train_times_freq]
-                    sample_idc = torch.cat([sample_idc, torch.tensor([n_times - 1], device=times_t.device)])
-                    sample_idc = sample_idc.sort().values
-
-                    times_sampled = times_t[sample_idc]
-                    inv_N_sampled = inv_N[sample_idc]
+                    y_true_surv = self.get_survival_function(times_tensor, time_to_event, y)
+                    y_true_surv = y_true_surv.to(self.device).float()
 
                     # Forward pass
                     batch_size = X.size(0)
-                    expanded_X = X.unsqueeze(1).expand(-1, len(times_sampled), -1)
-                    expanded_times = times_sampled.view(1, -1, 1).expand(batch_size, -1, -1)
+                    expanded_X = X.unsqueeze(1).expand(-1, len(times), -1)
+                    expanded_times = times_tensor.view(1, -1, 1).expand(batch_size, -1, -1)
 
                     hazards = self._model(
                         expanded_X.reshape(-1, expanded_X.size(-1)),
@@ -284,11 +621,7 @@ class SurvPredictor:
                     ).view(batch_size, -1)
 
                     surv_pred = torch.exp(-hazards.cumsum(dim=1))
-
-                    loss = ibs_loss_torch(surv_pred, events, durations, times_sampled, inv_N_sampled)
-                    # loss = ibs_remain_torch(None, survival_test, surv_pred, times=times_sampled)
-                    # loss = masked_loss(self.criterion, surv_pred, y_true_surv,
-                    #    events=y, durations=time_to_event, times=times_tensor)
+                    loss = self.criterion(surv_pred, y_true_surv)
 
                     # Backward pass
                     self.optimizer.zero_grad()
@@ -312,46 +645,38 @@ class SurvPredictor:
             self.fit_times.append(epoch_time)
 
             if val_dataloader is not None:
+                X_pred, X_gt = self.predict(val_dataloader, times)
+                ci, ibs, ibs_bal = self.scorer.get_ci_ibs_ibs_bal(self, X_pred, X_gt, times)
+
                 with torch.no_grad():
-                    X_pred, X_gt = self.predict(val_dataloader, val_times)
-                    calc_metrics = additional_val_metrics.union({score_metric.replace('neg_', '')})
-                    metrics = self.scorer.get_metrics(self, X_pred, X_gt, val_times, calc_metrics)
                     event_times_val = X_gt['time'] + X_gt['duration']
                     events_val = X_gt['failure']
 
                     event_times_val_tensor = torch.as_tensor(
-                        event_times_val, device=self.device, dtype=torch.float).unsqueeze(1)
+                        event_times_val, device=self.device, dtype=torch.int).unsqueeze(1)
                     events_val_tensor = torch.as_tensor(events_val, device=self.device, dtype=torch.float)
-
-                    # y_true_surv_val = self.get_survival_function(
-                    #     val_times_tensor, event_times_val_tensor, events_val_tensor)
-                    # y_true_surv_val = y_true_surv_val.to(self.device).float()
-
-                    survival_test_val = np.rec.fromarrays(
-                        [X_gt['failure'].values.astype(bool), X_gt['duration'].values],
-                        names=['event', 'duration']
-                    )
-
+                    y_true_surv_val = self.get_survival_function(
+                        times_tensor, event_times_val_tensor, events_val_tensor)
+                    y_true_surv_val = y_true_surv_val.to(self.device).float()
                     surv_val_pred = torch.Tensor(X_pred.iloc[0:, 2:].astype('float').values)
                     surv_val_pred = surv_val_pred.to(self.device).float()
+                    val_loss = self.criterion(surv_val_pred, y_true_surv_val).item()
 
-                    # Use masked loss for validation as well
-                    # val_loss = masked_loss(self.criterion, surv_val_pred, y_true_surv_val,
-                    #                        events=events_val_tensor, durations=event_times_val_tensor,
-                    #                        times=val_times_tensor).item()
+                del X_pred, X_gt, event_times_val_tensor, events_val_tensor, y_true_surv_val, surv_val_pred
 
-                    val_loss = ibs_remain_torch(None, survival_test_val, surv_val_pred, times=val_times_tensor)
+                val_metrics = {
+                    'neg_ci': -ci,
+                    'ibs': ibs,
+                    'ibs_bal': ibs_bal,
+                    'loss': loss.item()
+                }
 
-                # del X_pred, X_gt, event_times_val_tensor, events_val_tensor, surv_val_pred
-
-                val_metrics = {metric: metrics[metric] for metric in calc_metrics}
-
-                val_score = val_metrics[score_metric] if not score_metric.startswith(
-                    'neg_') else -val_metrics[score_metric]
+                val_score = val_metrics[score_metric]
                 print("Val score:", val_score)
                 if writer is not None:
-                    for metric in val_metrics:
-                        writer.add_scalar(f'Val/{metric}', metrics[metric], epoch)
+                    writer.add_scalar(f'Val/ci', ci, epoch)
+                    writer.add_scalar(f'Val/ibs', ibs, epoch)
+                    writer.add_scalar(f'Val/ibs_bal', ibs_bal, epoch)
                     writer.add_scalar(f'Val/loss', val_loss, epoch)
 
                 if early_stopping:
@@ -390,13 +715,14 @@ class SurvPredictor:
                  - A DataFrame containing ground truth durations and event indicators if available,
                    otherwise an empty DataFrame.
          """
-        model_state = self._model.training
         self._model.eval()
+        # serials are contained separately, because they are strings
         pred_chunks = []
         pred_serials = []
         gt_chunks = []
 
         with torch.no_grad():
+            # Make tensor out of times
             times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
             n_times = len(times)
 
@@ -407,6 +733,7 @@ class SurvPredictor:
                 X = X.to(self.device)
                 obs_times = obs_times.to(self.device).int()
 
+                # Expand each observation on times
                 expanded_X = X.unsqueeze(1).expand(-1, n_times, -1)
                 expanded_times = times_tensor.reshape(1, -1, 1).expand(batch_size, -1, -1)
                 hazards = self._model(expanded_X.reshape(batch_size * len(times), -1),
@@ -425,6 +752,7 @@ class SurvPredictor:
                 if (real_durations != -1).any():
                     real_durations = real_durations.to(self.device)
                     y = y.to(self.device)
+                    # Process if there are true lifetime values
                     gt_block = torch.column_stack([
                         obs_times,
                         real_durations,
@@ -453,13 +781,10 @@ class SurvPredictor:
         else:
             df_gt = pd.DataFrame()
 
-        if model_state:
-            self._model.train()
-
         return df_surv, df_gt
 
     def get_expected_time(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[np.ndarray, pd.DataFrame]:
-        """Computes the expected time to event for observations in the dataloader 
+        """Computes the expected time to event for observations in the dataloader
         based on predicted survival functions.
 
         Args:
@@ -493,307 +818,3 @@ class SurvPredictor:
         X = X_pred
         survival_vec = X.drop(['serial_number', 'time'], axis='columns').values
         return np.trapz(y=survival_vec, x=times)
-
-# class SurvPredictor:
-#     """Survival predictor.
-
-#     Attributes:
-#         device (str): Device where the model and tensors are allocated ('cuda' or 'cpu').
-#         _model (nn.Module): Neural network model instance.
-#         criterion (nn.Module): Loss function used for training.
-#         optimizer (torch.optim.Optimizer): Optimizer for training the model.
-#         writer (Optional[SummaryWriter]): TensorBoard writer instance.
-#     """
-
-#     def __init__(self,
-#                  input_dim: int,
-#                  hidden_dim: int = 64,
-#                  lr: float = 1e-3,
-#                  epochs: int = 100,
-#                  device: Optional[str] = None):
-#         """Initialize survival predictor.
-
-#         Args:
-#             input_dim: Number of input features
-#             hidden_dim: Number of hidden units (default: 64)
-#             lr: Learning rate (default: 1e-3)
-#             epochs: Number of training epochs (default: 100)
-#             device: Computation device ('cuda' or 'cpu')
-#         """
-#         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-#         self._model = nn.DataParallel(ClassifierArchitecture(input_dim, hidden_dim).to(self.device))
-#         self.epochs = epochs
-#         self.criterion = nn.MSELoss()
-#         self.optimizer = torch.optim.AdamW(self._model.parameters(), lr=lr)
-#         self.scorer = ModelScorer()
-
-#         # Training metrics
-#         self.loss: List[float] = []
-#         self.fit_times: List[float] = []
-#         self.best_loss = float('inf')
-
-#     def get_survival_function(self, times, event_times, status):
-#         surv = torch.ones((len(event_times), len(times)))
-#         for i, (t, s) in enumerate(zip(event_times, status)):
-#             surv[i, times >= t] = 0 if s else 1
-#         return surv
-
-#     def fit(self,
-#             train_dataloader: DataLoader,
-#             times: np.ndarray,
-#             val_dataloader: Optional[DataLoader] = None,
-#             early_stopping: bool = False,
-#             score_metric: str = 'neg_ci',
-#             patience: int = 10,
-#             min_delta=0.05,
-#             writer: Optional[SummaryWriter] = None):
-#         """Train model.
-
-#         Args:
-#             train_dataloader: DataLoader providing training batches
-#             times: Array of time points for survival prediction
-#             val_dataloader: DataLoader providing validation batches. If None, no validation is performed.
-#             early_stopping: Whether to use early stopping based on validation performance
-#             score_metric: Metric to use for evaluating model performance. Options: 'neg_ci' (negative concordance index),
-#                 'ibs' (integrated Brier score), or 'loss' (training loss).
-#             patience: Number of epochs to wait for improvement before early stopping
-#             min_delta: Minimum change in the monitored metric to qualify as an improvement
-#             writer: Optional SummaryWriter for logging training metrics (e.g., for TensorBoard)
-#     """
-#         self._model.train()
-#         times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
-#         global_step = 0
-
-#         if early_stopping:
-#             if val_dataloader is None:
-#                 raise ValueError("Validation DataLoader must be provided for early stopping")
-#             self.best_score = np.inf
-#             self.early_stop_counter = 0
-#             self.best_model_state = copy.deepcopy(self._model.state_dict())
-
-#         for epoch in range(self.epochs):
-#             epoch_loss = 0
-#             epoch_steps = 0
-#             start_time = time.time()
-
-#             with tqdm(train_dataloader, unit='batch') as tepoch:
-#                 tepoch.set_description(f"Epoch {epoch}")
-
-#                 for _, _, X, y, time_to_event in tepoch:
-#                     # Prepare data
-#                     X = X.to(self.device).float()
-#                     time_to_event = time_to_event.to(self.device).int().unsqueeze(1)
-#                     y = y.to(self.device).float()
-
-#                     # Compute true survival function
-#                     y_true_surv = self.get_survival_function(times_tensor, time_to_event, y)
-#                     y_true_surv = y_true_surv.to(self.device).float()
-
-#                     # Forward pass
-#                     batch_size = X.size(0)
-#                     expanded_X = X.unsqueeze(1).expand(-1, len(times), -1)
-#                     expanded_times = times_tensor.view(1, -1, 1).expand(batch_size, -1, -1)
-
-#                     hazards = self._model(
-#                         expanded_X.reshape(-1, expanded_X.size(-1)),
-#                         expanded_times.reshape(-1, 1)
-#                     ).view(batch_size, -1)
-
-#                     surv_pred = torch.exp(-hazards.cumsum(dim=1))
-#                     loss = self.criterion(surv_pred, y_true_surv)
-
-#                     # Backward pass
-#                     self.optimizer.zero_grad()
-#                     loss.backward()
-#                     self.optimizer.step()
-
-#                     loss_value = loss.item()
-#                     epoch_loss += loss_value
-#                     epoch_steps += 1
-#                     global_step += 1
-
-#                     if writer is not None:
-#                         writer.add_scalar('Loss/train_batch', loss_value, global_step)
-
-#                     tepoch.set_postfix(loss=loss_value)
-
-#             # Epoch statistics
-#             avg_epoch_loss = epoch_loss / epoch_steps
-#             epoch_time = time.time() - start_time
-#             self.loss.append(avg_epoch_loss)
-#             self.fit_times.append(epoch_time)
-
-#             if val_dataloader is not None:
-#                 X_pred, X_gt = self.predict(val_dataloader, times)
-#                 ci, ibs, ibs_bal = self.scorer.get_ci_ibs_ibs_bal(self, X_pred, X_gt, times)
-
-#                 with torch.no_grad():
-#                     event_times_val = X_gt['time'] + X_gt['duration']
-#                     events_val = X_gt['failure']
-
-#                     event_times_val_tensor = torch.as_tensor(
-#                         event_times_val, device=self.device, dtype=torch.int).unsqueeze(1)
-#                     events_val_tensor = torch.as_tensor(events_val, device=self.device, dtype=torch.float)
-#                     y_true_surv_val = self.get_survival_function(
-#                         times_tensor, event_times_val_tensor, events_val_tensor)
-#                     y_true_surv_val = y_true_surv_val.to(self.device).float()
-#                     surv_val_pred = torch.Tensor(X_pred.iloc[0:, 2:].astype('float').values)
-#                     surv_val_pred = surv_val_pred.to(self.device).float()
-#                     val_loss = self.criterion(surv_val_pred, y_true_surv_val).item()
-
-#                 del X_pred, X_gt, event_times_val_tensor, events_val_tensor, y_true_surv_val, surv_val_pred
-
-#                 val_metrics = {
-#                     'neg_ci': -ci,
-#                     'ibs': ibs,
-#                     'ibs_bal': ibs_bal,
-#                     'loss': loss.item()
-#                 }
-
-#                 val_score = val_metrics[score_metric]
-#                 print("Val score:", val_score)
-#                 if writer is not None:
-#                     writer.add_scalar(f'Val/ci', ci, epoch)
-#                     writer.add_scalar(f'Val/ibs', ibs, epoch)
-#                     writer.add_scalar(f'Val/ibs_bal', ibs_bal, epoch)
-#                     writer.add_scalar(f'Val/loss', val_loss, epoch)
-
-#                 if early_stopping:
-#                     if val_score < self.best_score - min_delta:
-#                         self.best_score = val_score
-#                         self.early_stop_counter = 0
-#                         self.best_model_state = copy.deepcopy(self._model.state_dict())
-#                     else:
-#                         self.early_stop_counter += 1
-#                         if self.early_stop_counter >= patience:
-#                             print(f"Early stopping triggered at epoch {epoch}!")
-#                             self._model.load_state_dict(self.best_model_state)
-#                             break
-
-#             # TensorBoard logging
-#             if writer is not None:
-#                 writer.add_scalar('Loss/train_epoch', avg_epoch_loss, epoch)
-#                 writer.add_scalar('Time/epoch', epoch_time, epoch)
-
-#     def predict(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[pd.DataFrame, pd.DataFrame]:
-#         """Predicts survival functions for observations from the dataloader.
-
-#          For each observation, this method predicts the survival probability
-#          over a predefined set of time points using the trained model.
-
-#          Args:
-#              dataloader (DataLoader): A DataLoader providing batches of data in the form:
-#                  (serial_numbers, obs_times, X, y, real_durations)
-#              times (np.ndarray, optional): Array of time points at which the survival function is evaluated.
-#                  Defaults to TIMES.
-
-#          Returns:
-#              Tuple[pd.DataFrame, pd.DataFrame]:
-#                  - A DataFrame containing predicted survival functions for each observation.
-#                    Columns: ['serial_number', 'time', t1, t2, ..., tN]
-#                  - A DataFrame containing ground truth durations and event indicators if available,
-#                    otherwise an empty DataFrame.
-#          """
-#         self._model.eval()
-#         # serials are contained separately, because they are strings
-#         pred_chunks = []
-#         pred_serials = []
-#         gt_chunks = []
-
-#         with torch.no_grad():
-#             # Make tensor out of times
-#             times_tensor = torch.as_tensor(times, device=self.device, dtype=torch.float32)
-#             n_times = len(times)
-
-#             for serial_numbers, obs_times, X, y, real_durations in tqdm(dataloader):
-#                 batch_size = X.size(0)
-#                 serial_numbers = np.array(serial_numbers)
-
-#                 X = X.to(self.device)
-#                 obs_times = obs_times.to(self.device).int()
-
-#                 # Expand each observation on times
-#                 expanded_X = X.unsqueeze(1).expand(-1, n_times, -1)
-#                 expanded_times = times_tensor.reshape(1, -1, 1).expand(batch_size, -1, -1)
-#                 hazards = self._model(expanded_X.reshape(batch_size * len(times), -1),
-#                                       expanded_times.reshape(batch_size * len(times), -1))
-#                 hazards = hazards.view(batch_size, n_times)
-#                 surv_probs = torch.exp(-hazards.cumsum(dim=1))
-
-#                 pred_block = torch.column_stack([
-#                     obs_times,
-#                     surv_probs
-#                 ])
-
-#                 pred_chunks.append(pred_block)
-#                 pred_serials.append(serial_numbers)
-
-#                 if (real_durations != -1).any():
-#                     real_durations = real_durations.to(self.device)
-#                     y = y.to(self.device)
-#                     # Process if there are true lifetime values
-#                     gt_block = torch.column_stack([
-#                         obs_times,
-#                         real_durations,
-#                         y
-#                     ])
-#                     gt_chunks.append(gt_block)
-
-#         pred_values = torch.concat(pred_chunks, dim=0).cpu().numpy()
-#         serial_numbers_flat = np.concatenate(pred_serials)
-
-#         df_surv = pd.DataFrame(pred_values, columns=['time'] + times.tolist())
-#         df_surv.insert(0, 'serial_number', serial_numbers_flat)
-#         df_surv['time'] = df_surv['time'].astype('int32')
-#         df_surv[times] = df_surv[times].astype('float32')
-
-#         if gt_chunks:
-#             gt_values = torch.concat(gt_chunks, dim=0).cpu().numpy()
-#             df_gt = pd.DataFrame(gt_values, columns=['time', 'duration', 'failure'])
-#             df_gt.insert(0, 'serial_number', serial_numbers_flat)
-#             df_gt = df_gt.astype({
-#                 'serial_number': 'string',
-#                 'time': 'int32',
-#                 'duration': 'int32'
-#             })
-#             df_gt['failure'] = df_gt['failure'] == 1
-#         else:
-#             df_gt = pd.DataFrame()
-
-#         return df_surv, df_gt
-
-#     def get_expected_time(self, dataloader: DataLoader, times: np.ndarray = TIMES) -> Tuple[np.ndarray, pd.DataFrame]:
-#         """Computes the expected time to event for observations in the dataloader
-#         based on predicted survival functions.
-
-#         Args:
-#             dataloader (DataLoader): A DataLoader providing data for prediction.
-#             times (np.ndarray, optional): Array of time points used for evaluating the survival function.
-#                 Defaults to TIMES.
-
-#         Returns:
-#             Tuple[np.ndarray, pd.DataFrame]:
-#                 - A numpy array of expected times to event for each observation.
-#                 - A DataFrame containing ground truth durations and event indicators if available,
-#                   otherwise an empty DataFrame.
-#         """
-#         df_survival, df_gt = self.predict(dataloader, times=times)
-#         return self.get_expected_time_by_predictions(df_survival, times), df_gt
-
-#     def get_expected_time_by_predictions(self, X_pred: pd.DataFrame, times: np.ndarray) -> np.ndarray:
-#         """Calculates expected time to event based on predicted survival functions.
-
-#         The expected time is computed as the area under the survival curve
-#         for each observation using trapezoidal rule.
-
-#         Args:
-#             X_pred (pd.DataFrame): DataFrame containing predicted survival functions.
-#                 Columns: ['serial_number', 'time', t1, t2, ..., tN]
-#             times (np.ndarray): Array of time points corresponding to the survival functions.
-
-#         Returns:
-#             np.ndarray: A numpy array of expected times to event for each observation.
-#         """
-#         X = X_pred
-#         survival_vec = X.drop(['serial_number', 'time'], axis='columns').values
-#         return np.trapz(y=survival_vec, x=times)

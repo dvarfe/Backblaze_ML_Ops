@@ -1,0 +1,8 @@
+{
+    "learn_params": {
+        "epochs": 2
+    },
+    "model_params": {
+        "lr": 0.01
+    }
+}

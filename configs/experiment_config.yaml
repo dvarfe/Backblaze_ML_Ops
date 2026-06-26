@@ -1,0 +1,64 @@
+exp_num: 168
+mode: train
+exp_desc: "Перебор параметров"
+
+data_folder: Data/Preprocessed_old
+data_ext: csv
+
+train_grid: [1, 20]
+test_grid: [25]
+val_data_size: 20
+metrics: [ci, ibs, ibs_bal, iauc]
+score_sample_grid: [10]   # опционально: score test на n-м наблюдении; без поля — все наблюдения
+bootstrap_n: 10             # опционально: n bootstrap-строк test-метрик для доверительных интервалов
+seed: 42
+
+files_to_save:
+  - scripts/run_experiment.py
+  - disk_analyzer/research/runner.py
+  - disk_analyzer/models/Cox.py
+  - disk_analyzer/models/sksurv_estimators.py
+  - disk_analyzer/models/Dataset.py
+
+param_grids:
+  CoxTV:
+    l1_ratio: [0.0, 0.5, 1.0]
+    penalizer: [0.01, 0.1, 1.0]
+
+  CoxTILN:
+    l1_ratio: [0.0, 0.5, 1.0]
+    penalizer: [0.01, 0.1, 1.0]
+
+  RSF:
+    n_estimators: [50, 100, 200]
+    max_depth: [8]              
+    min_samples_split: [0.0001, 0.01, 0.1, 0.5]
+    min_samples_leaf: [0.00005, 0.005, 0.05, 0.25]
+    max_features: [0.7]         
+  
+  GBSA:
+    n_estimators: [10]
+    learning_rate: [0.001, 0.01, 0.1]
+    max_depth: [4]
+    subsample: [0.1, 0.25, 0.5, 0.75]
+
+data:
+  train_batchsize: 512
+  score_batchsize: 512
+  times: [0, 730]
+  train_times_freq: 20
+  to_cens_shift: []
+  to_term_shift: []
+  cens_prob: -1
+
+training:
+  epochs: 1
+  lr: 0.0001
+  early_stopping: true
+  patience: 30
+  min_delta: 0.001
+  score_metric: ibs
+  gradient_accumulation_steps: 1
+  t_0: 2
+  t_mult: 2
+  eta_min: 0.000001

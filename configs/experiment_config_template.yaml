@@ -1,0 +1,119 @@
+# =============================================================================
+# ШАБЛОН конфигурации эксперимента (reference only — не запускать напрямую).
+# Рабочий файл: configs/experiment_config.yaml
+# Запуск: python scripts/run_experiment.py --cuda 0
+#
+# Обучаются только модели, перечисленные в param_grids (каждый ключ = метод).
+# Доступные методы: DDH, CoxTV, CoxTILN, CoxTISN, RSF, GBSA, NN, SP
+# =============================================================================
+
+# --- идентификация ---
+exp_num: 0
+mode: train                     # train | test_only
+base_exp: null                  # test_only: номер Exp с уже обученными моделями
+exp_desc: ""
+
+# --- данные ---
+data_folder: Data/Preprocessed_old
+data_ext: csv                   # csv | parquet
+
+train_grid: [20]                # размеры обучающей выборки (число дисков)
+test_grid: [25]                 # размеры тестовой выборки; [] = без отдельного test
+val_data_size: 20               # дисков для валидации при early stopping
+metrics: [ci, ibs, ibs_bal]     # ci, ibs, ibs_bal, iauc
+# score_sample_grid: [1, 10]    # опционально: score test только на n-м наблюдении (1 строка/диск);
+                                 # без поля — score по всем наблюдениям (как раньше)
+# bootstrap_n: 100               # опционально: n bootstrap-строк test-метрик (без point estimate)
+seed: 42
+
+# --- grid search по гиперпараметрам (раскомментируй нужные методы) ---
+param_grids:
+
+  # Dynamic DeepHit (нейросеть, auton-survival)
+  DDH:
+    typ: [LSTM]                 # LSTM | GRU | RNN
+    hidden_rnn: [512]
+    layers_rnn: [1]
+    long_param:
+      - layers: [512, 256]      # long-term subnetwork
+    att_param:
+      - layers: [256]            # attention subnetwork
+    cs_param:
+      - layers: [512, 256]      # cause-specific subnetwork
+    split: [730]                 # int или список границ дискретизации времени
+    learning_rate: [0.001]
+    # alpha: [0.1]              # вес loss-компонент (опционально)
+    # beta: [0.1]
+    # sigma: [0.1]
+
+  # Cox proportional hazards (time-varying)
+  CoxTV:
+    l1_ratio: [0.0, 0.5, 1.0]  # 0 = ridge, 1 = lasso
+    penalizer: [0.01, 0.1, 1.0]
+
+  # Cox (time-invariant, log-normal frailty)
+  CoxTILN:
+    l1_ratio: [0.0, 0.5, 1.0]
+    penalizer: [0.01, 0.1, 1.0]
+
+  # Cox (time-invariant, semi-parametric)
+  CoxTISN:
+    l1_ratio: [0.0, 0.5, 1.0]
+    penalizer: [0.01, 0.1, 1.0]
+
+  # Random Survival Forest (scikit-survival)
+  RSF:
+    n_estimators: [50, 100, 200]
+    max_depth: [8]              # null = без ограничения
+    min_samples_split: [10]
+    min_samples_leaf: [3]
+    max_features: [0.7]         # float (доля) или int (число признаков)
+
+  # Gradient Boosting Survival Analysis (scikit-survival)
+  GBSA:
+    n_estimators: [50, 100, 200]
+    learning_rate: [0.1]
+    max_depth: [4]
+    subsample: [0.8]
+
+  # Простой MLP-классификатор
+  NN:
+    hidden_dim: [64, 128]
+
+  # Survival Predictor (нейросеть с early stopping)
+  SP:
+    hidden_dim: [64, 128]
+
+# --- параметры датасета / скоринга ---
+data:
+  train_batchsize: 512
+  score_batchsize: 512
+  times: [0, 730]               # [start, end) → np.arange(0, 730)
+  train_times_freq: 20          # шаг дискретизации времени при обучении
+  to_cens_shift: []             # сдвиги для цензурированных (augmentation)
+  to_term_shift: []             # сдвиги для завершённых наблюдений
+  cens_prob: -1                 # -1 = без undersampling цензуры
+
+# --- обучение ---
+training:
+  epochs: 1                     # для DDH/NN/SP; Cox/RSF/GBSA игнорируют
+  lr: 0.0001                    # для NN/SP; DDH использует learning_rate из param_grids
+  early_stopping: true          # SP
+  patience: 30
+  min_delta: 0.001
+  score_metric: ibs               # метрика для early stopping (SP)
+  gradient_accumulation_steps: 1
+  t_0: 2                        # CosineAnnealingWarmRestarts (SP)
+  t_mult: 2
+  eta_min: 0.000001
+
+# --- снимок кода в Artifacts/Exp_N/code/ ---
+files_to_save:
+  - scripts/run_experiment.py
+  - disk_analyzer/research/runner.py
+  - disk_analyzer/models/Cox.py
+  - disk_analyzer/models/sksurv_estimators.py
+  - disk_analyzer/models/Dataset.py
+  - disk_analyzer/models/DynamicDeepHit.py
+  - disk_analyzer/models/Net.py
+  - disk_analyzer/models/SurvPredictor.py

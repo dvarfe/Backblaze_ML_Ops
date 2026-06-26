@@ -5,3 +5,9 @@ torch==2.6.0
 scikit-learn==1.6.1
 survivors==1.7.1
 tqdm==4.67.1
+lifelines>=0.26.4
+pyarrow
+seaborn
+tensorboard
+PyYAML
+scikit-survival>=0.22.0
